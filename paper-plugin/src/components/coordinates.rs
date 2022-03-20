@@ -31,8 +31,8 @@ impl Add<(i8, i8)> for Coordinates {
     type Output = Self;
 
     fn add(self, (x, y): (i8, i8)) -> Self::Output {
-        let x = ((self.x as i8) + x) as u16;
-        let y = ((self.y as i8) + y) as u16;
+        let x = ((self.x as i16) + x as i16) as u16;
+        let y = ((self.y as i16) + y as i16) as u16;
         Self { x, y }
     }
 }

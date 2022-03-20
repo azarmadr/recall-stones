@@ -24,19 +24,12 @@ impl Default for SpriteMaterial {
 pub struct BoardAssets {
     /// Label
     pub label: String,
-    ///
     pub board_material: SpriteMaterial,
-    ///
     pub card_material: SpriteMaterial,
-    ///
     pub covered_card_material: SpriteMaterial,
-    ///
     pub counter_font: Handle<Font>,
-    ///
-    pub counter_colors: Vec<Color>,
-    ///
+    pub card_color: Vec<Color>,
     pub flag_material: SpriteMaterial,
-    ///
     pub material: SpriteMaterial,
 }
 
@@ -53,11 +46,11 @@ impl BoardAssets {
     }
 
     /// Safely retrieves the color matching a bomb counter
-    pub fn bomb_counter_color(&self, counter: u8) -> Color {
+    pub fn card_color(&self, counter: u16) -> Color {
         let counter = counter.saturating_sub(1) as usize;
-        match self.counter_colors.get(counter) {
+        match self.card_color.get(counter) {
             Some(c) => *c,
-            None => match self.counter_colors.last() {
+            None => match self.card_color.last() {
                 None => Color::WHITE,
                 Some(c) => *c,
             },

@@ -1,10 +1,16 @@
+mod buttons;
+
+use bevy::log;
 use bevy::log::{Level, LogSettings};
 use bevy::prelude::*;
 
-use bevy::log;
+use crate::buttons::{ButtonAction, ButtonColors};
 #[cfg(feature = "debug")]
-use bevy_inspector_egui::WorldInspectorPlugin;
-use paper_plugin::{events::DeckCompletedEvent, PaperPlugin, BoardAssets, BoardOptions, BoardPosition, SpriteMaterial};
+use bevy_inspector_egui::RegisterInspectable;
+use paper_plugin::{
+    events::DeckCompletedEvent,Board, BoardAssets, BoardOptions, BoardPosition, PaperPlugin,
+    SpriteMaterial,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
@@ -18,8 +24,8 @@ fn main() {
     // Window setup
     app.insert_resource(WindowDescriptor {
         title: "Recall the Stones!".to_string(),
-        width: 700.,
-        height: 800.,
+        width: 500.,
+        height: 700.,
         ..Default::default()
     })
     // Log setup
@@ -28,25 +34,28 @@ fn main() {
         ..Default::default()
     })
     // Bevy default plugins
-    .add_plugins(DefaultPlugins)
-    // Board plugin options
-    .insert_resource(BoardOptions {
-        ..Default::default()
-    })
+    .add_plugins(DefaultPlugins);
+    // Debug hierarchy inspector
+    #[cfg(feature = "debug")]
+    {
+        app.add_plugin(bevy_inspector_egui::WorldInspectorPlugin::new());
+        app.register_inspectable::<ButtonAction>();
+    }
     // Board plugin
-    .add_plugin(PaperPlugin {
+    app.add_plugin(PaperPlugin {
         running_state: AppState::InGame,
     })
     .add_state(AppState::Out)
     .add_startup_system(setup_board)
     // Startup system (cameras)
     .add_startup_system(setup_camera)
-    .add_system(state_handler);
-    #[cfg(feature = "debug")]
-    // Debug hierarchy inspector
-    app.add_plugin(WorldInspectorPlugin::new());
+    // UI
+    .add_startup_system(setup_ui)
+    // State handling
+    .add_system(input_handler)
+    .add_system(state_handler)
     // Run the app
-    app.run();
+    .run();
 }
 
 fn setup_board(
@@ -56,7 +65,7 @@ fn setup_board(
 ) {
     // Board plugin options
     commands.insert_resource(BoardOptions {
-        deck_size: (7, 20),
+        deck_size: (2, 20),
         max_limit: 50,
         card_padding: 2.,
         safe_start: true,
@@ -81,7 +90,7 @@ fn setup_board(
             ..Default::default()
         },
         counter_font: asset_server.load("fonts/pixeled.ttf"),
-        counter_colors: BoardAssets::default_colors(),
+        card_color: BoardAssets::default_colors(),
         flag_material: SpriteMaterial {
             texture: asset_server.load("sprites/flag.png"),
             color: Color::WHITE,
@@ -102,34 +111,149 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(UiCameraBundle::default());
 }
 
+#[allow(clippy::type_complexity)]
+fn input_handler(
+    button_colors: Res<ButtonColors>,
+    mut interaction_query: Query<
+        (&Interaction, &ButtonAction, &mut UiColor),
+        (Changed<Interaction>, With<Button>),
+    >,
+    mut state: ResMut<State<AppState>>,
+) {
+    for (interaction, action, mut color) in interaction_query.iter_mut() {
+        match *interaction {
+            Interaction::Clicked => {
+                *color = button_colors.pressed.into();
+                match action {
+                    ButtonAction::Clear => {
+                        log::debug!("clearing detected");
+                        if state.current() == &AppState::InGame {
+                            log::info!("clearing game");
+                            state.set(AppState::Out).unwrap();
+                        }
+                    }
+                    ButtonAction::Generate => {
+                        log::debug!("loading detected");
+                        match state.current() {
+                            AppState::Out => {
+                                log::info!("loading game");
+                                state.set(AppState::InGame).unwrap();
+                            }
+                            AppState::Menu => {
+                                log::info!("loading game");
+                                //state.pop().unwrap();
+                                state.replace(AppState::InGame).unwrap();
+                                //state.overwrite_set(AppState::InGame).unwrap();
+                            }
+                            _ => (),
+                        }
+                    }
+                }
+            }
+            Interaction::Hovered => {
+                *color = button_colors.hovered.into();
+            }
+            Interaction::None => {
+                *color = button_colors.normal.into();
+            }
+        }
+    }
+}
+
 fn state_handler(
     mut state: ResMut<State<AppState>>,
-    keys: Res<Input<KeyCode>>,
+    board: Option<Res<Board>>,
+    mut board_options: ResMut<BoardOptions>,
     mut board_complete_evr: EventReader<DeckCompletedEvent>,
 ) {
-    if keys.just_pressed(KeyCode::C) {
-        log::debug!("clearing detected");
-        if state.current() == &AppState::InGame {
-            log::info!("clearing game");
-            state.set(AppState::Out).unwrap();
-        }
-    }
-    if keys.just_pressed(KeyCode::G) {
-        log::debug!("loading detected");
-        if state.current() == &AppState::Out {
-            log::info!("loading game");
-            state.set(AppState::InGame).unwrap();
-        }
-    }
-    if keys.just_pressed(KeyCode::Escape) {
-        log::debug!("toggle menu");
-        match state.current() {
-            &AppState::InGame => state.push(AppState::Menu).unwrap(),
-            &AppState::Menu => state.pop().unwrap(),
-            _ => (),
-        }
-    }
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
+        if let Some(b) = &board {
+        if b.score < 2 * b.deck.count() as u32{
+            board_options.deck_size.0 += 1;
+        }
+        }
     }
+}
+
+fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let button_materials = ButtonColors {
+        normal: Color::GRAY,
+        hovered: Color::DARK_GRAY,
+        pressed: Color::BLACK,
+    };
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.), Val::Px(50.)),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..Default::default()
+            },
+            color: Color::WHITE.into(),
+            ..Default::default()
+        })
+        .insert(Name::new("UI"))
+        .with_children(|parent| {
+            let font = asset_server.load("fonts/pixeled.ttf");
+            setup_single_menu(
+                parent,
+                "CLEAR",
+                button_materials.normal.into(),
+                font.clone(),
+                ButtonAction::Clear,
+            );
+            setup_single_menu(
+                parent,
+                "GENERATE",
+                button_materials.normal.into(),
+                font,
+                ButtonAction::Generate,
+            );
+        });
+    commands.insert_resource(button_materials);
+}
+
+fn setup_single_menu(
+    parent: &mut ChildBuilder,
+    text: &str,
+    color: UiColor,
+    font: Handle<Font>,
+    action: ButtonAction,
+) {
+    parent
+        .spawn_bundle(ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Percent(95.), Val::Auto),
+                margin: Rect::all(Val::Px(10.)),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..Default::default()
+            },
+            color,
+            ..Default::default()
+        })
+        .insert(action)
+        .insert(Name::new(text.to_string()))
+        .with_children(|builder| {
+            builder.spawn_bundle(TextBundle {
+                text: Text {
+                    sections: vec![TextSection {
+                        value: text.to_string(),
+                        style: TextStyle {
+                            font,
+                            font_size: 30.,
+                            color: Color::WHITE,
+                        },
+                    }],
+                    alignment: TextAlignment {
+                        vertical: VerticalAlign::Center,
+                        horizontal: HorizontalAlign::Center,
+                    },
+                },
+                ..Default::default()
+            });
+        });
 }

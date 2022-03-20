@@ -1,17 +1,18 @@
-//use crate::resources::card::Card;
+use crate::components::*;
 use crate::deck::Deck;
+use crate::events::{CardFlipEvent, DeckCompletedEvent};
 use bevy::ecs::schedule::StateData;
 use bevy::log;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy::render::view::Visibility;
 use bevy::text::Text2dSize;
-use bevy::utils::{AHashExt, HashMap};
 
-use crate::components::*;
-use crate::events::{CardFlipEvent, DeckCompletedEvent};
+#[cfg(feature = "debug")]
+use bevy_inspector_egui::RegisterInspectable;
 pub use bounds::*;
 pub use resources::*;
+use std::collections::HashMap;
 
 mod bounds;
 pub mod components;
@@ -28,15 +29,14 @@ impl<T: StateData> Plugin for PaperPlugin<T> {
         app.add_system_set(
             SystemSet::on_enter(self.running_state.clone()).with_system(Self::create_board),
         )
-        // We handle input and trigger events only if the state is active
         .add_system_set(
             SystemSet::on_update(self.running_state.clone())
                 .with_system(systems::input::input_handling)
-                .with_system(systems::uncover::render_revealed)
                 .with_system(systems::uncover::trigger_event_handler),
         )
         .add_system_set(
             SystemSet::on_in_stack_update(self.running_state.clone())
+                .with_system(systems::uncover::render_revealed)
                 .with_system(systems::uncover::flip_cards),
         )
         .add_system_set(
@@ -44,6 +44,14 @@ impl<T: StateData> Plugin for PaperPlugin<T> {
         )
         .add_event::<CardFlipEvent>()
         .add_event::<DeckCompletedEvent>();
+        #[cfg(feature = "debug")]
+        {
+            app.register_inspectable::<Idx>()
+                .register_inspectable::<Coordinates>()
+                .register_inspectable::<Open>()
+                .register_inspectable::<Revealed>();
+        }
+        log::info!("Loaded Board Plugin");
     }
 }
 
@@ -52,16 +60,12 @@ impl<T> PaperPlugin<T> {
     pub fn create_board(
         mut commands: Commands,
         board_options: Option<Res<BoardOptions>>,
-        window: Res<WindowDescriptor>,
-        asset_server: Res<AssetServer>,
+        board_assets: Res<BoardAssets>,
+        windows: Res<Windows>,
     ) {
-        log::info!("padding: {:?}", board_options);
         let options = match board_options {
             None => BoardOptions::default(), // If no options is set we use the default one
-            Some(o) => {
-                commands.remove_resource::<BoardOptions>(); // After this system the options are no longer relevant
-                o.clone()
-            }
+            Some(o) => o.clone(),
         };
 
         // Cardmap generation
@@ -76,23 +80,18 @@ impl<T> PaperPlugin<T> {
         // We define the size of our cards in world space
         let card_size = match options.card_size {
             CardSize::Fixed(v) => v,
-            CardSize::Adaptive { min, max } => {
-                Self::adaptative_card_size(window, (min, max), (deck.width(), deck.width() + 1))
-            }
+            CardSize::Adaptive { min, max } => Self::adaptative_card_size(
+                windows.get_primary().unwrap(),
+                (min, max),
+                (deck.width(), deck.height()),
+            ),
         };
-        log::info!("card_size: {}", card_size);
-        log::info!("padding: {:?}", options);
         // We deduce the size of the complete board
         let board_size = Vec2::new(
             deck.width() as f32 * card_size,
-            (2. * deck.count() as f32/ deck.width() as f32).ceil() * card_size,
+            deck.height() as f32 * card_size,
         );
-        log::info!(
-            "width: {}, count: {}, board size: {}",
-            deck.width(),
-            deck.count(),
-            board_size
-        );
+        log::info!("board size: {}", board_size);
         // We define the board anchor position (bottom left)
         let board_position = match options.position {
             BoardPosition::Centered { offset } => {
@@ -101,12 +100,8 @@ impl<T> PaperPlugin<T> {
             BoardPosition::Custom(p) => p,
         };
 
-        // TODO: refactor this
-        let font = asset_server.load("fonts/minecraft.ttf");
-        let bomb_image = asset_server.load("sprites/bomb.png");
-        //
-
-        let mut hidden_cards = HashMap::with_capacity((deck.width() * (1 + deck.width())).into());
+        let mut hidden_cards = HashMap::with_capacity((2*deck.count()).into());
+        let opened_count = HashMap::with_capacity((2*deck.count()).into());
         let board_entity = commands
             .spawn()
             .insert(Name::new("Board"))
@@ -118,10 +113,11 @@ impl<T> PaperPlugin<T> {
                 parent
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
-                            color: Color::WHITE,
                             custom_size: Some(board_size),
+                            color: board_assets.board_material.color,
                             ..Default::default()
                         },
+                        texture: board_assets.board_material.texture.clone(),
                         transform: Transform::from_xyz(board_size.x / 2., board_size.y / 2., 0.),
                         ..Default::default()
                     })
@@ -135,7 +131,7 @@ impl<T> PaperPlugin<T> {
                                 deck.count() * 2 - 1
                             ),
                             TextStyle {
-                                font: font.clone(),
+                                font: board_assets.counter_font.clone(),
                                 color: Color::WHITE,
                                 font_size: 30.0,
                             },
@@ -150,10 +146,7 @@ impl<T> PaperPlugin<T> {
                     &deck,
                     card_size,
                     options.card_padding,
-                    Color::GRAY,
-                    Color::GRAY,
-                    bomb_image,
-                    font,
+                    &board_assets,
                     &mut hidden_cards,
                 );
             })
@@ -169,6 +162,7 @@ impl<T> PaperPlugin<T> {
             completed: false,
             card_size,
             hidden_cards,
+            opened_count,
             entity: board_entity,
         })
     }
@@ -178,10 +172,7 @@ impl<T> PaperPlugin<T> {
         deck: &Deck,
         size: f32,
         padding: f32,
-        _color: Color,
-        _hidden_card_color: Color,
-        _bomb_image: Handle<Image>,
-        font: Handle<Font>,
+        board_assets: &Res<BoardAssets>,
         hidden_cards: &mut HashMap<Idx, Entity>,
     ) {
         // Cards
@@ -189,12 +180,15 @@ impl<T> PaperPlugin<T> {
             let (x, y) = (i % deck.width() as usize, i / deck.width() as usize);
             let coordinates = Idx(i as u16);
             let mut cmd = parent.spawn();
+
+            // Card sprite
             cmd.insert_bundle(SpriteBundle {
                 sprite: Sprite {
-                    color: Color::GRAY,
                     custom_size: Some(Vec2::splat(size - padding)),
+                    color: board_assets.card_material.color,
                     ..Default::default()
                 },
+                texture: board_assets.card_material.texture.clone(),
                 transform: Transform::from_xyz(
                     (x as f32 * size) + (size / 2.),
                     (y as f32 * size) + (size / 2.),
@@ -207,7 +201,8 @@ impl<T> PaperPlugin<T> {
                 let entity = parent
                     .spawn_bundle(Self::card_to_text_bundle(
                         card.val(),
-                        font.clone(),
+                        deck.max(),
+                        &board_assets,
                         size - padding,
                     ))
                     .insert(Name::new("Card"))
@@ -219,26 +214,22 @@ impl<T> PaperPlugin<T> {
     }
 
     /// Generates the card value text 2D Bundle
-    fn card_to_text_bundle(value: u16, font: Handle<Font>, size: f32) -> Text2dBundle {
+    fn card_to_text_bundle(
+        value: u16,
+        max: u16,
+        board_assets: &Res<BoardAssets>,
+        size: f32,
+    ) -> Text2dBundle {
         // We retrieve the text and the correct color
-        let (text, color) = (
-            value.to_string(),
-            match value {
-                0..=9 => Color::WHITE,
-                10..=18 => Color::GREEN,
-                19..=27 => Color::YELLOW,
-                28..=36 => Color::ORANGE,
-                _ => Color::PURPLE,
-            },
-        );
+        let color = board_assets.card_color(value * board_assets.card_color.len() as u16 / max);
         // We generate a text bundle
         Text2dBundle {
             text: Text {
                 sections: vec![TextSection {
-                    value: text,
+                    value: value.to_string(),
                     style: TextStyle {
                         color,
-                        font,
+                        font: board_assets.counter_font.clone(),
                         font_size: size,
                     },
                 }],
@@ -253,20 +244,20 @@ impl<T> PaperPlugin<T> {
                     height: size,
                 },
             },
-            transform: Transform::from_xyz(0., 0., 1.),
             visibility: Visibility { is_visible: false },
+            transform: Transform::from_xyz(0., 0., 1.),
             ..Default::default()
         }
     }
 
     /// Computes a card size that matches the window according to the card map size
     fn adaptative_card_size(
-        window: Res<WindowDescriptor>,
+        window: &Window,
         (min, max): (f32, f32),
         (width, height): (u16, u16),
     ) -> f32 {
-        let max_width = window.width / width as f32;
-        let max_heigth = window.height / height as f32;
+        let max_width = window.width() / width as f32;
+        let max_heigth = window.height() / height as f32;
         max_width.min(max_heigth).clamp(min, max)
     }
 

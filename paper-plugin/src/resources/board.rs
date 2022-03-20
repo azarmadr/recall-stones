@@ -2,7 +2,7 @@ use crate::components::Idx;
 use crate::deck::Deck;
 use crate::Bounds2;
 use bevy::prelude::*;
-use bevy::utils::HashMap;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Board {
@@ -10,6 +10,7 @@ pub struct Board {
     pub bounds: Bounds2,
     pub card_size: f32,
     pub hidden_cards: HashMap<Idx, Entity>,
+    pub opened_count: HashMap<Idx, u16>,
     pub entity: Entity,
     pub score: u32,
     pub completed: bool,
@@ -39,8 +40,18 @@ impl Board {
         !self.hidden_cards.contains_key(&id)
     }
 
+    pub fn opened_count(&self, id: &Idx) -> u16 {
+        match self.opened_count.get(&id) {
+            Some(v) => *v,
+            None => 1,
+        }
+    }
     /// reveal all the matching cards
     pub fn reveal_matching_cards(&mut self, ids: Vec<Idx>) {
+        for e in ids.iter() {
+            let count = self.opened_count.entry(*e).or_insert(0);
+            *count += 1;
+        }
         for id in self.deck.matching_cards(ids).iter() {
             //probably return to add cloaks
             self.hidden_cards.remove(&id);

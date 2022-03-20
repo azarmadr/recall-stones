@@ -95,6 +95,14 @@ impl Deck {
     pub fn width(&self) -> u16 {
         (self.map.len() as f32).sqrt().round() as u16
     }
+
+    // Getter for `height`
+    // needs additional params
+    #[inline]
+    #[must_use]
+    pub fn height(&self) -> u16 {
+        (2. * self.count() as f32 / self.width() as f32).ceil() as u16
+    }
 }
 
 impl Deref for Deck {
