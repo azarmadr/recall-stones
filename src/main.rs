@@ -53,7 +53,7 @@ fn main() {
     .add_startup_system(setup_ui)
     // State handling
     .add_system(input_handler)
-    .add_system(state_handler)
+    .add_system(on_completion)
     // Run the app
     .run();
 }
@@ -66,7 +66,7 @@ fn setup_board(
     // Board plugin options
     commands.insert_resource(BoardOptions {
         deck_size: (2, 20),
-        max_limit: 50,
+        max_limit: 4,
         card_padding: 2.,
         safe_start: true,
         position: BoardPosition::Centered {
@@ -91,10 +91,6 @@ fn setup_board(
         },
         counter_font: asset_server.load("fonts/pixeled.ttf"),
         card_color: BoardAssets::default_colors(),
-        flag_material: SpriteMaterial {
-            texture: asset_server.load("sprites/flag.png"),
-            color: Color::WHITE,
-        },
         material: SpriteMaterial {
             texture: asset_server.load("sprites/bomb.png"),
             color: Color::WHITE,
@@ -160,7 +156,7 @@ fn input_handler(
     }
 }
 
-fn state_handler(
+fn on_completion(
     mut state: ResMut<State<AppState>>,
     board: Option<Res<Board>>,
     mut board_options: ResMut<BoardOptions>,
@@ -169,9 +165,10 @@ fn state_handler(
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
         if let Some(b) = &board {
-        if b.score < 2 * b.deck.count() as u32{
-            board_options.deck_size.0 += 1;
-        }
+            if b.score < 2 * b.deck.count() as u32{
+                board_options.deck_size.0 += 1;
+                board_options.max_limit += 2;
+            }
         }
     }
 }
@@ -193,7 +190,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             color: Color::WHITE.into(),
             ..Default::default()
         })
-        .insert(Name::new("UI"))
+    .insert(Name::new("UI"))
         .with_children(|parent| {
             let font = asset_server.load("fonts/pixeled.ttf");
             setup_single_menu(
@@ -202,14 +199,14 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::Clear,
-            );
+                );
             setup_single_menu(
                 parent,
                 "GENERATE",
                 button_materials.normal.into(),
                 font,
                 ButtonAction::Generate,
-            );
+                );
         });
     commands.insert_resource(button_materials);
 }
@@ -220,7 +217,7 @@ fn setup_single_menu(
     color: UiColor,
     font: Handle<Font>,
     action: ButtonAction,
-) {
+    ) {
     parent
         .spawn_bundle(ButtonBundle {
             style: Style {
@@ -235,7 +232,7 @@ fn setup_single_menu(
             color,
             ..Default::default()
         })
-        .insert(action)
+    .insert(action)
         .insert(Name::new(text.to_string()))
         .with_children(|builder| {
             builder.spawn_bundle(TextBundle {

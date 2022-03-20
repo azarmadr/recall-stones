@@ -29,12 +29,11 @@ pub struct BoardAssets {
     pub covered_card_material: SpriteMaterial,
     pub counter_font: Handle<Font>,
     pub card_color: Vec<Color>,
-    pub flag_material: SpriteMaterial,
     pub material: SpriteMaterial,
 }
 
 impl BoardAssets {
-    /// Default bomb counter color set
+    /// Default card value color set
     pub fn default_colors() -> Vec<Color> {
         vec![
             Color::WHITE,
@@ -45,15 +44,25 @@ impl BoardAssets {
         ]
     }
 
-    /// Safely retrieves the color matching a bomb counter
-    pub fn card_color(&self, counter: u16) -> Color {
-        let counter = counter.saturating_sub(1) as usize;
-        match self.card_color.get(counter) {
+    /// Safely retrieves the color matching a value
+    pub fn card_color(&self, value: u16) -> Color {
+        let value = value.saturating_sub(1) as usize;
+        match self.card_color.get(value) {
             Some(c) => *c,
             None => match self.card_color.last() {
                 None => Color::WHITE,
                 Some(c) => *c,
             },
+        }
+    }
+
+    pub fn count_color(&self, val: u16) -> Color {
+        match val {
+            1 => Color::GREEN,
+            2 => Color::WHITE,
+            3 => Color::YELLOW,
+            4 => Color::ORANGE,
+            _ => Color::RED,
         }
     }
 }

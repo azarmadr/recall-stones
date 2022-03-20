@@ -2,7 +2,6 @@ use crate::components::{Idx, Open, Revealed, Score};
 use crate::events::{CardFlipEvent, DeckCompletedEvent};
 use crate::{Board, BoardAssets};
 use bevy::log;
-use bevy::text::Text2dSize;
 use bevy::prelude::*;
 use bevy::render::view::Visibility;
 
@@ -71,19 +70,16 @@ pub fn render_revealed(
                         text: Text::with_section(
                             board.opened_count(id).to_string(),
                             TextStyle {
-                                color: board_assets.flag_material.color,
+                                color: board_assets.count_color(board.opened_count(id)),
                                 font: board_assets.counter_font.clone(),
-                                font_size: 20.,
+                                font_size: 27.,
                             },
                             TextAlignment {
                                 horizontal: HorizontalAlign::Left,
-                                vertical: VerticalAlign::Top,
+                                vertical: VerticalAlign::Bottom,
                             },
                         ),
-                        transform: Transform::from_xyz(0., 0., 1.),
-                        text_2d_size: Text2dSize {
-                            size: Size::<f32>::new(20.0,20.)
-                        },
+                        transform: Transform::from_xyz(10., 0., 1.),
                         ..Default::default()
                     })
                 /*

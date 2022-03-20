@@ -133,7 +133,7 @@ impl<T> PaperPlugin<T> {
                             TextStyle {
                                 font: board_assets.counter_font.clone(),
                                 color: Color::WHITE,
-                                font_size: 30.0,
+                                font_size: 27.0,
                             },
                             Default::default(),
                         ),
