@@ -1,0 +1,19 @@
+[package]
+name = "recall-stones"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+debug = ["paper-plugin/debug", "bevy-inspector-egui"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# bevy = { git = "https://github.com/bevyengine/bevy", rev = "b697e73c3d861c209152ccfb140ae00fbc6e9925", features = ["dynamic"] }
+bevy = "0.6"
+paper-plugin = { path = "paper-plugin"}
+bevy-inspector-egui = { version = "0.8", optional = true }
+
+[workspace]
+members = [ "paper-plugin" ]
