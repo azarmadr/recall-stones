@@ -33,15 +33,15 @@ impl Board {
 
     /// Retrieves a covered tile entity
     pub fn flip_card(&self, id: &Idx) -> Option<&Entity> {
-        self.hidden_cards.get(&id)
+        self.hidden_cards.get(id)
     }
 
     pub fn is_revealed(&self, id: &Idx) -> bool {
-        !self.hidden_cards.contains_key(&id)
+        !self.hidden_cards.contains_key(id)
     }
 
     pub fn opened_count(&self, id: &Idx) -> u16 {
-        match self.opened_count.get(&id) {
+        match self.opened_count.get(id) {
             Some(v) => *v,
             None => 1,
         }
@@ -54,7 +54,7 @@ impl Board {
         }
         for id in self.deck.matching_cards(ids).iter() {
             //probably return to add cloaks
-            self.hidden_cards.remove(&id);
+            self.hidden_cards.remove(id);
         }
     }
 }

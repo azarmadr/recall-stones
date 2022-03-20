@@ -8,6 +8,7 @@ use bevy::render::view::Visibility;
 pub fn flip_cards(
     mut commands: Commands,
     mut board: ResMut<Board>,
+    board_assets: Res<BoardAssets>,
     children: Query<(Entity, &Idx), With<Open>>,
     mut score: Query<&mut Text, With<Score>>,
     mut visibility: Query<&mut Visibility>,
@@ -30,77 +31,66 @@ pub fn flip_cards(
     }
     if open_cards.len() > 1 {
         board.reveal_matching_cards(open_cards);
-        for (entity, _) in children.iter() {
+        for (entity, id) in children.iter() {
             commands.entity(entity).remove::<Open>();
+            if board.is_revealed(id) {
+                commands
+                    .entity(entity)
+                    .insert(Revealed)
+                    .with_children(|parent| {
+                        render_revealed(parent, board.opened_count(id), &board_assets)
+                    });
+            }
         }
         board.score += 1;
-        let rem_cards = board.hidden_cards.len() / 2;
-        if rem_cards > 0 {
-            text.sections[0].value = format!(
-                "turns: {}\nLuck: {}\nPerfect Memory: {}",
-                board.score,
-                rem_cards,
-                rem_cards * 2 - 1
-            );
-        }
-    }
-    if !board.completed && board.hidden_cards.len() == 0 {
-        log::info!("Deck Completed");
-        board.completed = true;
+        let rem_cards = match board.hidden_cards.len() {
+            0 => board.deck.count(),
+            _ => board.hidden_cards.len() as u16 / 2,
+        };
         text.sections[0].value = format!(
             "turns: {}\nLuck: {}\nPerfect Memory: {}",
             board.score,
-            board.deck.count(),
-            board.deck.count() * 2 - 1
+            rem_cards,
+            rem_cards * 2 - 1
         );
+    }
+    if !board.completed && board.hidden_cards.is_empty() {
+        log::info!("Deck Completed");
+        board.completed = true;
         deck_complete_ewr.send(DeckCompletedEvent);
     }
 }
-pub fn render_revealed(
-    mut commands: Commands,
-    board: ResMut<Board>,
-    board_assets: Res<BoardAssets>,
-    query: Query<(Entity, &Idx), (Without<Open>, Without<Revealed>)>,
-) {
-    for (entity, id) in query.iter() {
-        if board.is_revealed(&id) {
-            commands
-                .entity(entity)
-                .with_children(|parent| {
-                    parent
-                        .spawn_bundle(Text2dBundle {
-                            text: Text::with_section(
-                                board.opened_count(id).to_string(),
-                                TextStyle {
-                                    color: board_assets.count_color(board.opened_count(id)),
-                                    font: board_assets.counter_font.clone(),
-                                    font_size: 27.,
-                                },
-                                TextAlignment {
-                                    horizontal: HorizontalAlign::Left,
-                                    vertical: VerticalAlign::Bottom,
-                                },
-                            ),
-                            transform: Transform::from_xyz(10., 0., 1.),
-                            ..Default::default()
-                        })
-                        /*
-                        .insert_bundle(SpriteBundle {
-                            texture: board_assets.flag_material.texture.clone(),
-                            sprite: Sprite {
-                                custom_size: Some(Vec2::splat(board.card_size)),
-                                color: board_assets.flag_material.color,
-                                ..Default::default()
-                            },
-                            transform: Transform::from_xyz(0., 0., 1.),
-                            ..Default::default()
-                        })
-                        */
-                        .insert(Name::new("Flag"));
-                })
-                .insert(Revealed);
-        }
-    }
+pub fn render_revealed(parent: &mut ChildBuilder, count: u16, board_assets: &BoardAssets) {
+    parent
+        .spawn_bundle(Text2dBundle {
+            text: Text::with_section(
+                count.to_string(),
+                TextStyle {
+                    color: board_assets.count_color(count),
+                    font: board_assets.counter_font.clone(),
+                    font_size: 27.,
+                },
+                TextAlignment {
+                    horizontal: HorizontalAlign::Left,
+                    vertical: VerticalAlign::Bottom,
+                },
+            ),
+            transform: Transform::from_xyz(10., 0., 1.),
+            ..Default::default()
+        })
+        /*
+        .insert_bundle(SpriteBundle {
+        texture: board_assets.flag_material.texture.clone(),
+        sprite: Sprite {
+        custom_size: Some(Vec2::splat(board.card_size)),
+        color: board_assets.flag_material.color,
+        ..Default::default()
+        },
+        transform: Transform::from_xyz(0., 0., 1.),
+        ..Default::default()
+        })
+        */
+        .insert(Name::new("Flag"));
 }
 pub fn trigger_event_handler(
     mut commands: Commands,

@@ -45,7 +45,7 @@ impl Deck {
                 None => (),
             }
         }
-        map.into_values().find(|x| x.len() > 1).unwrap_or(vec![])
+        map.into_values().find(|x| x.len() > 1).unwrap_or_default()
     }
 
     #[cfg(feature = "debug")]

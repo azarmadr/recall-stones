@@ -36,7 +36,6 @@ impl<T: StateData> Plugin for PaperPlugin<T> {
         )
         .add_system_set(
             SystemSet::on_in_stack_update(self.running_state.clone())
-                .with_system(systems::uncover::render_revealed)
                 .with_system(systems::uncover::flip_cards),
         )
         .add_system_set(
@@ -202,7 +201,7 @@ impl<T> PaperPlugin<T> {
                     .spawn_bundle(Self::card_to_text_bundle(
                         card.val(),
                         deck.max(),
-                        &board_assets,
+                        board_assets,
                         size - padding,
                     ))
                     .insert(Name::new("Card"))
