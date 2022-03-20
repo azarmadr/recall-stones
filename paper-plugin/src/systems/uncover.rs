@@ -64,39 +64,41 @@ pub fn render_revealed(
 ) {
     for (entity, id) in query.iter() {
         if board.is_revealed(&id) {
-            commands.entity(entity).with_children(|parent| {
-                parent
-                    .spawn_bundle(Text2dBundle {
-                        text: Text::with_section(
-                            board.opened_count(id).to_string(),
-                            TextStyle {
-                                color: board_assets.count_color(board.opened_count(id)),
-                                font: board_assets.counter_font.clone(),
-                                font_size: 27.,
-                            },
-                            TextAlignment {
-                                horizontal: HorizontalAlign::Left,
-                                vertical: VerticalAlign::Bottom,
-                            },
-                        ),
-                        transform: Transform::from_xyz(10., 0., 1.),
-                        ..Default::default()
-                    })
-                /*
-                    .insert_bundle(SpriteBundle {
-                        texture: board_assets.flag_material.texture.clone(),
-                        sprite: Sprite {
-                            custom_size: Some(Vec2::splat(board.card_size)),
-                            color: board_assets.flag_material.color,
+            commands
+                .entity(entity)
+                .with_children(|parent| {
+                    parent
+                        .spawn_bundle(Text2dBundle {
+                            text: Text::with_section(
+                                board.opened_count(id).to_string(),
+                                TextStyle {
+                                    color: board_assets.count_color(board.opened_count(id)),
+                                    font: board_assets.counter_font.clone(),
+                                    font_size: 27.,
+                                },
+                                TextAlignment {
+                                    horizontal: HorizontalAlign::Left,
+                                    vertical: VerticalAlign::Bottom,
+                                },
+                            ),
+                            transform: Transform::from_xyz(10., 0., 1.),
                             ..Default::default()
-                        },
-                        transform: Transform::from_xyz(0., 0., 1.),
-                        ..Default::default()
-                    })
-                    */
-                    .insert(Name::new("Flag"));
-            })
-            .insert(Revealed);
+                        })
+                        /*
+                        .insert_bundle(SpriteBundle {
+                            texture: board_assets.flag_material.texture.clone(),
+                            sprite: Sprite {
+                                custom_size: Some(Vec2::splat(board.card_size)),
+                                color: board_assets.flag_material.color,
+                                ..Default::default()
+                            },
+                            transform: Transform::from_xyz(0., 0., 1.),
+                            ..Default::default()
+                        })
+                        */
+                        .insert(Name::new("Flag"));
+                })
+                .insert(Revealed);
         }
     }
 }

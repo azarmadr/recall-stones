@@ -8,7 +8,7 @@ use crate::buttons::{ButtonAction, ButtonColors};
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::RegisterInspectable;
 use paper_plugin::{
-    events::DeckCompletedEvent,Board, BoardAssets, BoardOptions, BoardPosition, PaperPlugin,
+    events::DeckCompletedEvent, Board, BoardAssets, BoardOptions, BoardPosition, PaperPlugin,
     SpriteMaterial,
 };
 
@@ -18,6 +18,9 @@ pub enum AppState {
     Menu,
     Out,
 }
+
+#[derive(Component)]
+pub struct RestartTimer(Timer);
 
 fn main() {
     let mut app = App::new();
@@ -54,6 +57,7 @@ fn main() {
     // State handling
     .add_system(input_handler)
     .add_system(on_completion)
+    .add_system(restart_game_on_timer)
     // Run the app
     .run();
 }
@@ -123,24 +127,19 @@ fn input_handler(
                 match action {
                     ButtonAction::Clear => {
                         log::debug!("clearing detected");
-                        if state.current() == &AppState::InGame {
-                            log::info!("clearing game");
-                            state.set(AppState::Out).unwrap();
+                        log::info!("clearing game");
+                        match state.current() {
+                            AppState::InGame => state.set(AppState::Out).unwrap(),
+                            AppState::Menu => state.replace(AppState::Out).unwrap(),
+                            _ => (),
                         }
                     }
                     ButtonAction::Generate => {
                         log::debug!("loading detected");
+                        log::info!("loading game");
                         match state.current() {
-                            AppState::Out => {
-                                log::info!("loading game");
-                                state.set(AppState::InGame).unwrap();
-                            }
-                            AppState::Menu => {
-                                log::info!("loading game");
-                                //state.pop().unwrap();
-                                state.replace(AppState::InGame).unwrap();
-                                //state.overwrite_set(AppState::InGame).unwrap();
-                            }
+                            AppState::Out => state.set(AppState::InGame).unwrap(),
+                            AppState::Menu => state.replace(AppState::InGame).unwrap(),
                             _ => (),
                         }
                     }
@@ -156,20 +155,39 @@ fn input_handler(
     }
 }
 
+fn restart_game_on_timer(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut RestartTimer)>,
+    mut state: ResMut<State<AppState>>,
+) {
+    for (entity, mut timer) in query.iter_mut() {
+        if timer.0.tick(time.delta()).just_finished() {
+            if state.current() != &AppState::InGame {
+                state.replace(AppState::InGame).unwrap();
+            }
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
 fn on_completion(
     mut state: ResMut<State<AppState>>,
     board: Option<Res<Board>>,
+    mut commands: Commands,
     mut board_options: ResMut<BoardOptions>,
     mut board_complete_evr: EventReader<DeckCompletedEvent>,
 ) {
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
         if let Some(b) = &board {
-            if b.score < 2 * b.deck.count() as u32{
+            if b.score < 2 * b.deck.count() as u32 {
                 board_options.deck_size.0 += 1;
                 board_options.max_limit += 2;
             }
         }
+        commands
+            .spawn()
+            .insert(RestartTimer(Timer::from_seconds(3., false)));
     }
 }
 
@@ -190,7 +208,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             color: Color::WHITE.into(),
             ..Default::default()
         })
-    .insert(Name::new("UI"))
+        .insert(Name::new("UI"))
         .with_children(|parent| {
             let font = asset_server.load("fonts/pixeled.ttf");
             setup_single_menu(
@@ -199,14 +217,14 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::Clear,
-                );
+            );
             setup_single_menu(
                 parent,
                 "GENERATE",
                 button_materials.normal.into(),
                 font,
                 ButtonAction::Generate,
-                );
+            );
         });
     commands.insert_resource(button_materials);
 }
@@ -217,7 +235,7 @@ fn setup_single_menu(
     color: UiColor,
     font: Handle<Font>,
     action: ButtonAction,
-    ) {
+) {
     parent
         .spawn_bundle(ButtonBundle {
             style: Style {
@@ -232,7 +250,7 @@ fn setup_single_menu(
             color,
             ..Default::default()
         })
-    .insert(action)
+        .insert(action)
         .insert(Name::new(text.to_string()))
         .with_children(|builder| {
             builder.spawn_bundle(TextBundle {

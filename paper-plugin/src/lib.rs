@@ -100,8 +100,8 @@ impl<T> PaperPlugin<T> {
             BoardPosition::Custom(p) => p,
         };
 
-        let mut hidden_cards = HashMap::with_capacity((2*deck.count()).into());
-        let opened_count = HashMap::with_capacity((2*deck.count()).into());
+        let mut hidden_cards = HashMap::with_capacity((2 * deck.count()).into());
+        let opened_count = HashMap::with_capacity((2 * deck.count()).into());
         let board_entity = commands
             .spawn()
             .insert(Name::new("Board"))
