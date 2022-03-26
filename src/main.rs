@@ -168,7 +168,10 @@ fn input_handler(
                         match state.current() {
                             AppState::Out => state.set(AppState::InGame).unwrap(),
                             AppState::Menu => state.replace(AppState::InGame).unwrap(),
-                            _ => (),
+                            _ => {
+                                //state.push(AppState::Out).unwrap();
+                                //state.replace(AppState::InGame).unwrap();
+                            }
                         }
                     } //_ => ()
                 }
@@ -225,6 +228,40 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         hovered: Color::DARK_GRAY,
         pressed: Color::BLACK,
     };
+    let font = asset_server.load("fonts/pixeled.ttf");
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.), Val::Px(150.)),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                position_type: PositionType::Absolute,
+                position: Rect {
+                    top: Val::Px(0.),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            color: Color::BLACK.into(),
+            ..Default::default()
+        })
+        .insert(Name::new("Instructions"))
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle {
+                text: Text {
+                    sections: vec![
+                        write_strings("Instructions:",27.,Color::WHITE,font.clone()),
+                        write_strings("1. Match a card with its couplets",23.,Color::WHITE,font.clone()),
+                        write_strings("if couplet is two, then two cards have same value which can be matched",17.,Color::WHITE,font.clone()),
+                    ],
+                    alignment: TextAlignment {
+                        vertical: VerticalAlign::Center,
+                        horizontal: HorizontalAlign::Left,
+                    },
+                },
+                ..Default::default()
+            });
+        });
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -238,7 +275,6 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .insert(Name::new("UI"))
         .with_children(|parent| {
-            let font = asset_server.load("fonts/pixeled.ttf");
             /*
             setup_single_menu(
                 parent,
@@ -329,4 +365,11 @@ fn setup_single_menu(
                 ..Default::default()
             });
         });
+}
+fn write_strings( text: &str, font_size: f32, color: Color, font: Handle<Font>,) -> TextSection{
+    TextSection {
+        value: (text.to_owned()+"\n").to_string(), style: TextStyle {
+            font, font_size, color,
+        }
+    }
 }
