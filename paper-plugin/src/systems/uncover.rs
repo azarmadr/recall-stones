@@ -14,45 +14,49 @@ pub fn flip_cards(
     mut visibility: Query<&mut Visibility>,
     mut deck_complete_ewr: EventWriter<DeckCompletedEvent>,
 ) {
-    if children.iter().count() == 1 {
-        for &entity in board.hidden_cards.values() {
-            if let Ok(mut visible) = visibility.get_mut(entity) {
-                visible.is_visible = false;
-            }
-        }
-    }
-    let mut open_cards = vec![];
+    let deck_len = board.deck.couplets() as usize;
     let mut text = score.single_mut();
-    for (entity, id) in children.iter() {
-        open_cards.push(*id);
-        if let Ok(mut visible) = visibility.get_mut(entity) {
-            visible.is_visible = true;
+    for (entity, _) in children.iter() {
+        if let Ok(mut visibility) = visibility.get_mut(entity) {
+            visibility.is_visible = true;
         }
     }
-    if open_cards.len() > 1 {
-        board.reveal_matching_cards(open_cards);
-        for (entity, id) in children.iter() {
-            commands.entity(entity).remove::<Open>();
-            if board.is_revealed(id) {
-                commands
-                    .entity(entity)
-                    .insert(Revealed)
-                    .with_children(|parent| {
-                        render_revealed(parent, board.opened_count(id), &board_assets)
-                    });
+    match children.iter().count() {
+        x if x == deck_len => {
+            board.reveal_matching_cards(children.iter().map(|x| *x.1).collect());
+            for (entity, id) in children.iter() {
+                commands.entity(entity).remove::<Open>();
+                if board.is_revealed(id) {
+                    commands
+                        .entity(entity)
+                        .insert(Revealed)
+                        .with_children(|parent| {
+                            render_revealed(parent, board.opened_count(id), &board_assets)
+                        });
+                }
+            }
+            board.score += 1;
+            let rem_cards = match board.hidden_cards.len() {
+                0 => board.deck.count(),
+                _ => board.hidden_cards.len() as u16 / 2,
+            };
+            text.sections[0].value = format!(
+                "turns: {}\nLuck: {}\nPerfect Memory: {}",
+                board.score,
+                rem_cards,
+                rem_cards * 2 - 1
+            );
+        }
+        1 => {
+            for &entity in board.hidden_cards.values() {
+                if let Ok(mut visibility) = visibility.get_mut(entity) {
+                    if let Err(..) = children.get(entity) {
+                        visibility.is_visible = false;
+                    }
+                }
             }
         }
-        board.score += 1;
-        let rem_cards = match board.hidden_cards.len() {
-            0 => board.deck.count(),
-            _ => board.hidden_cards.len() as u16 / 2,
-        };
-        text.sections[0].value = format!(
-            "turns: {}\nLuck: {}\nPerfect Memory: {}",
-            board.score,
-            rem_cards,
-            rem_cards * 2 - 1
-        );
+        _ => (),
     }
     if !board.completed && board.hidden_cards.is_empty() {
         log::info!("Deck Completed");

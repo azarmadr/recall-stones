@@ -69,8 +69,7 @@ fn setup_board(
 ) {
     // Board plugin options
     commands.insert_resource(BoardOptions {
-        deck_size: (2, 20),
-        max_limit: 4,
+        deck_params: (2, 4, 2),
         card_padding: 2.,
         safe_start: true,
         position: BoardPosition::Centered {
@@ -118,6 +117,7 @@ fn input_handler(
         (&Interaction, &ButtonAction, &mut UiColor),
         (Changed<Interaction>, With<Button>),
     >,
+    mut board_options: ResMut<BoardOptions>,
     mut state: ResMut<State<AppState>>,
 ) {
     for (interaction, action, mut color) in interaction_query.iter_mut() {
@@ -125,6 +125,7 @@ fn input_handler(
             Interaction::Clicked => {
                 *color = button_colors.pressed.into();
                 match action {
+                    /*
                     ButtonAction::Clear => {
                         log::debug!("clearing detected");
                         log::info!("clearing game");
@@ -132,6 +133,33 @@ fn input_handler(
                             AppState::InGame => state.set(AppState::Out).unwrap(),
                             AppState::Menu => state.replace(AppState::Out).unwrap(),
                             _ => (),
+                        }
+                    }
+                    */
+                    ButtonAction::LevelUp => {
+                        log::debug!("LevelUp");
+                        log::info!("LevelUp");
+                        board_options.deck_params.0 += 1;
+                    }
+                    ButtonAction::LevelDown => {
+                        log::debug!("LevelDown");
+                        log::info!("LevelDown");
+                        if board_options.deck_params.0 > 2 {
+                            board_options.deck_params.0 -= 1;
+                        }
+                    }
+                    ButtonAction::CoupletUp => {
+                        log::debug!("CoupletUp");
+                        log::info!("CoupletUp");
+                        if board_options.deck_params.2 < 5 {
+                            board_options.deck_params.2 += 1;
+                        }
+                    }
+                    ButtonAction::CoupletDown => {
+                        log::debug!("CoupletDown");
+                        log::info!("CoupletDown");
+                        if board_options.deck_params.2 > 2 {
+                            board_options.deck_params.2 -= 1;
                         }
                     }
                     ButtonAction::Generate => {
@@ -142,7 +170,7 @@ fn input_handler(
                             AppState::Menu => state.replace(AppState::InGame).unwrap(),
                             _ => (),
                         }
-                    }
+                    } //_ => ()
                 }
             }
             Interaction::Hovered => {
@@ -180,9 +208,9 @@ fn on_completion(
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
         if let Some(b) = &board {
-            if b.score < 2 * b.deck.count() as u32 {
-                board_options.deck_size.0 += 1;
-                board_options.max_limit += 2;
+            if b.score < 2 * b.deck.len() as u32 {
+                board_options.deck_params.0 += 1;
+                board_options.deck_params.1 += 2;
             }
         }
         commands
@@ -211,12 +239,42 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(Name::new("UI"))
         .with_children(|parent| {
             let font = asset_server.load("fonts/pixeled.ttf");
+            /*
             setup_single_menu(
                 parent,
                 "CLEAR",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::Clear,
+            );
+            */
+            setup_single_menu(
+                parent,
+                "LevelUp",
+                button_materials.normal.into(),
+                font.clone(),
+                ButtonAction::LevelUp,
+            );
+            setup_single_menu(
+                parent,
+                "LevelDown",
+                button_materials.normal.into(),
+                font.clone(),
+                ButtonAction::LevelDown,
+            );
+            setup_single_menu(
+                parent,
+                "CoupletUp",
+                button_materials.normal.into(),
+                font.clone(),
+                ButtonAction::CoupletUp,
+            );
+            setup_single_menu(
+                parent,
+                "CoupletDown",
+                button_materials.normal.into(),
+                font.clone(),
+                ButtonAction::CoupletDown,
             );
             setup_single_menu(
                 parent,
@@ -259,7 +317,7 @@ fn setup_single_menu(
                         value: text.to_string(),
                         style: TextStyle {
                             font,
-                            font_size: 30.,
+                            font_size: 27.,
                             color: Color::WHITE,
                         },
                     }],

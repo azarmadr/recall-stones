@@ -23,10 +23,8 @@ pub enum BoardPosition {
 // We use serde to allow saving option presets and loading them at runtime
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BoardOptions {
-    /// Card deck size
-    pub deck_size: (u16, u16),
-    /// max card value
-    pub max_limit: u16,
+    /// Tuple of Deck size, max card value, couplet length
+    pub deck_params: (u16, u16, u8),
     /// Baard world position
     pub position: BoardPosition,
     /// Card world size
@@ -57,8 +55,7 @@ impl Default for BoardPosition {
 impl Default for BoardOptions {
     fn default() -> Self {
         Self {
-            deck_size: (4, 6),
-            max_limit: 30,
+            deck_params: (4, 30, 2),
             position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,

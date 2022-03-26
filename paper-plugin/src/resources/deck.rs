@@ -8,33 +8,25 @@ use std::ops::{Deref, DerefMut};
 pub struct Deck {
     count: u16,
     max: u16,
-    can_open: u8,
+    couplets: u8,
     map: Vec<Card>,
 }
 
 impl Deck {
-    /// Generates an empty map
-    #[inline]
-    #[must_use]
-    pub fn empty(count: u16) -> Self {
-        let map = (0..count).into_iter().map(|_| Card(0)).collect();
+    /// Randomize couplets till max count and initialize them in the Deck
+    pub fn init((count, max, couplets): (u16, u16, u8)) -> Self {
+        let mut rng = rand::thread_rng();
+        let mut map: Vec<Card> = sample(&mut rng, max.into(), count.into())
+            .iter()
+            .flat_map(|x| std::iter::repeat(Card(x as u16)).take(couplets.into()))
+            .collect();
+        map.shuffle(&mut rng);
         Self {
             count,
-            max: 1,
-            can_open: 2,
+            max,
+            couplets,
             map,
         }
-    }
-
-    /// Randomize couplets till max count and set them in the Deck
-    pub fn set_cards(&mut self, max: u16) {
-        self.max = max;
-        let mut rng = rand::thread_rng();
-        self.map = sample(&mut rng, max.into(), self.count.into())
-            .iter()
-            .flat_map(|x| [Card(x as u16), Card(x as u16)])
-            .collect();
-        self.map.shuffle(&mut rng);
     }
 
     pub fn matching_cards(&self, ids: Vec<Idx>) -> Vec<Idx> {
@@ -45,7 +37,9 @@ impl Deck {
                 None => (),
             }
         }
-        map.into_values().find(|x| x.len() > 1).unwrap_or_default()
+        map.into_values()
+            .find(|x| x.len() == self.couplets as usize)
+            .unwrap_or_default()
     }
 
     #[cfg(feature = "debug")]
@@ -84,8 +78,8 @@ impl Deck {
     // Getter for `open`
     #[inline]
     #[must_use]
-    pub fn can_open(&self) -> u8 {
-        self.can_open
+    pub fn couplets(&self) -> u8 {
+        self.couplets
     }
 
     // Getter for `width`
@@ -101,7 +95,7 @@ impl Deck {
     #[inline]
     #[must_use]
     pub fn height(&self) -> u16 {
-        (2. * self.count() as f32 / self.width() as f32).ceil() as u16
+        (self.map.len() as f32 / self.width() as f32).ceil() as u16
     }
 }
 

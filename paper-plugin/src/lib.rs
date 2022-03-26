@@ -68,8 +68,7 @@ impl<T> PaperPlugin<T> {
         };
 
         // Cardmap generation
-        let mut deck = Deck::empty(options.deck_size.0);
-        deck.set_cards(options.max_limit);
+        let deck = Deck::init(options.deck_params);
         #[cfg(feature = "debug")]
         // Cardmap debugging
         log::info!("{}", deck.console_output());
@@ -99,8 +98,8 @@ impl<T> PaperPlugin<T> {
             BoardPosition::Custom(p) => p,
         };
 
-        let mut hidden_cards = HashMap::with_capacity((2 * deck.count()).into());
-        let opened_count = HashMap::with_capacity((2 * deck.count()).into());
+        let mut hidden_cards = HashMap::with_capacity(deck.len());
+        let opened_count = HashMap::with_capacity(deck.len());
         let board_entity = commands
             .spawn()
             .insert(Name::new("Board"))
