@@ -3,13 +3,14 @@ mod buttons;
 use bevy::log;
 use bevy::log::{Level, LogSettings};
 use bevy::prelude::*;
+use std::collections::HashMap;
 
 use crate::buttons::{ButtonAction, ButtonColors};
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::RegisterInspectable;
 use paper_plugin::{
     events::DeckCompletedEvent, Board, BoardAssets, BoardOptions, BoardPosition, PaperPlugin,
-    SpriteMaterial,
+    SpriteMaterial,Collection
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -27,8 +28,8 @@ fn main() {
     // Window setup
     app.insert_resource(WindowDescriptor {
         title: "Recall the Stones!".to_string(),
-        width: 500.,
-        height: 700.,
+        width: 480.,
+        height: 720.,
         ..Default::default()
     })
     // Log setup
@@ -71,7 +72,6 @@ fn setup_board(
     commands.insert_resource(BoardOptions {
         deck_params: (2, 4, 2),
         card_padding: 2.,
-        safe_start: true,
         position: BoardPosition::Centered {
             offset: Vec3::new(0., 25., 0.),
         },
@@ -98,6 +98,10 @@ fn setup_board(
             texture: asset_server.load("sprites/bomb.png"),
             color: Color::WHITE,
         },
+        col_map: HashMap::from([
+                               (Collection::Eng, asset_server.load_untyped("fonts/pixeled.ttf")),
+                               (Collection::Tel, asset_server.load_untyped("fonts/RaviPrakash.ttf")),
+        ])
     });
     // Launch game
     state.set(AppState::InGame).unwrap();
@@ -114,28 +118,28 @@ fn setup_camera(mut commands: Commands) {
 fn input_handler(
     button_colors: Res<ButtonColors>,
     mut interaction_query: Query<
-        (&Interaction, &ButtonAction, &mut UiColor),
-        (Changed<Interaction>, With<Button>),
+    (&Interaction, &ButtonAction, &mut UiColor),
+    (Changed<Interaction>, With<Button>),
     >,
     mut board_options: ResMut<BoardOptions>,
     mut state: ResMut<State<AppState>>,
-) {
+    ) {
     for (interaction, action, mut color) in interaction_query.iter_mut() {
         match *interaction {
             Interaction::Clicked => {
                 *color = button_colors.pressed.into();
                 match action {
                     /*
-                    ButtonAction::Clear => {
-                        log::debug!("clearing detected");
-                        log::info!("clearing game");
-                        match state.current() {
-                            AppState::InGame => state.set(AppState::Out).unwrap(),
-                            AppState::Menu => state.replace(AppState::Out).unwrap(),
-                            _ => (),
-                        }
-                    }
-                    */
+                       ButtonAction::Clear => {
+                       log::debug!("clearing detected");
+                       log::info!("clearing game");
+                       match state.current() {
+                       AppState::InGame => state.set(AppState::Out).unwrap(),
+                       AppState::Menu => state.replace(AppState::Out).unwrap(),
+                       _ => (),
+                       }
+                       }
+                       */
                     ButtonAction::LevelUp => {
                         log::debug!("LevelUp");
                         log::info!("LevelUp");
@@ -191,7 +195,7 @@ fn restart_game_on_timer(
     time: Res<Time>,
     mut query: Query<(Entity, &mut RestartTimer)>,
     mut state: ResMut<State<AppState>>,
-) {
+    ) {
     for (entity, mut timer) in query.iter_mut() {
         if timer.0.tick(time.delta()).just_finished() {
             if state.current() != &AppState::InGame {
@@ -207,7 +211,7 @@ fn on_completion(
     mut commands: Commands,
     mut board_options: ResMut<BoardOptions>,
     mut board_complete_evr: EventReader<DeckCompletedEvent>,
-) {
+    ) {
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
         if let Some(b) = &board {
@@ -245,7 +249,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             color: Color::BLACK.into(),
             ..Default::default()
         })
-        .insert(Name::new("Instructions"))
+    .insert(Name::new("Instructions"))
         .with_children(|parent| {
             parent.spawn_bundle(TextBundle {
                 text: Text {
@@ -273,52 +277,52 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             color: Color::WHITE.into(),
             ..Default::default()
         })
-        .insert(Name::new("UI"))
+    .insert(Name::new("UI"))
         .with_children(|parent| {
             /*
-            setup_single_menu(
-                parent,
-                "CLEAR",
-                button_materials.normal.into(),
-                font.clone(),
-                ButtonAction::Clear,
-            );
-            */
+               setup_single_menu(
+               parent,
+               "CLEAR",
+               button_materials.normal.into(),
+               font.clone(),
+               ButtonAction::Clear,
+               );
+               */
             setup_single_menu(
                 parent,
                 "LevelUp",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::LevelUp,
-            );
+                );
             setup_single_menu(
                 parent,
                 "LevelDown",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::LevelDown,
-            );
+                );
             setup_single_menu(
                 parent,
                 "CoupletUp",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::CoupletUp,
-            );
+                );
             setup_single_menu(
                 parent,
                 "CoupletDown",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::CoupletDown,
-            );
+                );
             setup_single_menu(
                 parent,
                 "GENERATE",
                 button_materials.normal.into(),
                 font,
                 ButtonAction::Generate,
-            );
+                );
         });
     commands.insert_resource(button_materials);
 }
@@ -329,22 +333,20 @@ fn setup_single_menu(
     color: UiColor,
     font: Handle<Font>,
     action: ButtonAction,
-) {
+    ) {
     parent
         .spawn_bundle(ButtonBundle {
             style: Style {
                 size: Size::new(Val::Percent(95.), Val::Auto),
                 margin: Rect::all(Val::Px(10.)),
-                // horizontally center child text
                 justify_content: JustifyContent::Center,
-                // vertically center child text
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
             color,
             ..Default::default()
         })
-        .insert(action)
+    .insert(action)
         .insert(Name::new(text.to_string()))
         .with_children(|builder| {
             builder.spawn_bundle(TextBundle {
@@ -366,10 +368,13 @@ fn setup_single_menu(
             });
         });
 }
-fn write_strings( text: &str, font_size: f32, color: Color, font: Handle<Font>,) -> TextSection{
+fn write_strings(text: &str, font_size: f32, color: Color, font: Handle<Font>) -> TextSection {
     TextSection {
-        value: (text.to_owned()+"\n").to_string(), style: TextStyle {
-            font, font_size, color,
-        }
+        value: (text.to_owned() + "\n").to_string(),
+        style: TextStyle {
+            font,
+            font_size,
+            color,
+        },
     }
 }

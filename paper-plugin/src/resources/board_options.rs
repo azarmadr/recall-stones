@@ -1,4 +1,6 @@
 use bevy::prelude::Vec3;
+use std::collections::HashSet;
+use crate::resources::Collection;
 use serde::{Deserialize, Serialize};
 
 /// Card size options
@@ -31,8 +33,8 @@ pub struct BoardOptions {
     pub card_size: CardSize,
     /// Padding between cards
     pub card_padding: f32,
-    /// Does the board generate a safe place to start
-    pub safe_start: bool,
+    /// Various collection from which cards are generated
+    pub collections: HashSet<Collection>,
 }
 
 impl Default for CardSize {
@@ -59,7 +61,7 @@ impl Default for BoardOptions {
             position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,
-            safe_start: false,
+            collections: HashSet::from([Collection::Tel,Collection::Eng]),
         }
     }
 }

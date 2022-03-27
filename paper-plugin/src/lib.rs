@@ -1,12 +1,13 @@
 use crate::components::*;
+use rand::seq::index::sample;
 use crate::deck::Deck;
 use crate::events::{CardFlipEvent, DeckCompletedEvent};
+pub use crate::resources::Collection;
 use bevy::ecs::schedule::StateData;
 use bevy::log;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
-use bevy::render::view::Visibility;
-use bevy::text::Text2dSize;
+//use bevy::render::view::Visibility;
 
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::RegisterInspectable;
@@ -143,6 +144,7 @@ impl<T> PaperPlugin<T> {
                     parent,
                     &deck,
                     card_size,
+                    options.collections.into_iter().collect::<Vec<_>>(),
                     options.card_padding,
                     &board_assets,
                     &mut hidden_cards,
@@ -169,16 +171,22 @@ impl<T> PaperPlugin<T> {
         parent: &mut ChildBuilder,
         deck: &Deck,
         size: f32,
+        collections: Vec<Collection>,
         padding: f32,
         board_assets: &Res<BoardAssets>,
         hidden_cards: &mut HashMap<Idx, Entity>,
     ) {
+        let mut col_map = HashMap::new();
         // Cards
         for (i, card) in deck.iter().enumerate() {
             let (x, y) = (i % deck.width() as usize, i / deck.width() as usize);
             let coordinates = Idx(i as u16);
             let mut cmd = parent.spawn();
-
+            let mut rng = rand::thread_rng();
+            let couplets = deck.couplets() as usize;
+            let col = col_map.entry(card).or_insert(sample(&mut rng, couplets, couplets).iter().collect::<Vec<usize>>())
+                .pop().unwrap()%collections.len();
+            
             // Card sprite
             cmd.insert_bundle(SpriteBundle {
                 sprite: Sprite {
@@ -197,54 +205,17 @@ impl<T> PaperPlugin<T> {
             .insert(Name::new(format!("Card ({}, {})", x, y)));
             cmd.with_children(|parent| {
                 let entity = parent
-                    .spawn_bundle(Self::card_to_text_bundle(
-                        card.val(),
+                    .spawn_bundle(collections[col].translate(
+                        *card,
                         deck.max(),
-                        board_assets,
                         size - padding,
+                        board_assets,
                     ))
                     .insert(Name::new("Card"))
                     .insert(coordinates)
                     .id();
                 hidden_cards.insert(coordinates, entity);
             });
-        }
-    }
-
-    /// Generates the card value text 2D Bundle
-    fn card_to_text_bundle(
-        value: u16,
-        max: u16,
-        board_assets: &Res<BoardAssets>,
-        size: f32,
-    ) -> Text2dBundle {
-        // We retrieve the text and the correct color
-        let color = board_assets.card_color(value * board_assets.card_color.len() as u16 / max);
-        // We generate a text bundle
-        Text2dBundle {
-            text: Text {
-                sections: vec![TextSection {
-                    value: value.to_string(),
-                    style: TextStyle {
-                        color,
-                        font: board_assets.counter_font.clone(),
-                        font_size: size,
-                    },
-                }],
-                alignment: TextAlignment {
-                    vertical: VerticalAlign::Center,
-                    horizontal: HorizontalAlign::Center,
-                },
-            },
-            text_2d_size: Text2dSize {
-                size: Size {
-                    width: size,
-                    height: size,
-                },
-            },
-            visibility: Visibility { is_visible: false },
-            transform: Transform::from_xyz(0., 0., 1.),
-            ..Default::default()
         }
     }
 

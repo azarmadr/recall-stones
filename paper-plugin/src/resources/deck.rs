@@ -1,5 +1,5 @@
 use crate::components::Idx;
-use crate::resources::card::Card;
+//use crate::resources::card::Card;
 use rand::seq::{index::sample, SliceRandom};
 use std::ops::{Deref, DerefMut};
 
@@ -9,16 +9,16 @@ pub struct Deck {
     count: u16,
     max: u16,
     couplets: u8,
-    map: Vec<Card>,
+    map: Vec<u16>,
 }
 
 impl Deck {
     /// Randomize couplets till max count and initialize them in the Deck
     pub fn init((count, max, couplets): (u16, u16, u8)) -> Self {
         let mut rng = rand::thread_rng();
-        let mut map: Vec<Card> = sample(&mut rng, max.into(), count.into())
+        let mut map: Vec<u16> = sample(&mut rng, max.into(), count.into())
             .iter()
-            .flat_map(|x| std::iter::repeat(Card(x as u16)).take(couplets.into()))
+            .flat_map(|x| std::iter::repeat(x as u16).take(couplets.into()))
             .collect();
         map.shuffle(&mut rng);
         Self {
@@ -33,7 +33,7 @@ impl Deck {
         let mut map = std::collections::HashMap::new();
         for Idx(e) in ids {
             match self.map.get(e as usize) {
-                Some(c) => map.entry(c.val()).or_insert(vec![]).push(Idx(e)),
+                Some(c) => map.entry(c).or_insert(vec![]).push(Idx(e)),
                 None => (),
             }
         }
@@ -56,7 +56,7 @@ impl Deck {
                 buffer = format!("{}|\n|", buffer);
             }
             count += 1;
-            buffer = format!("{}{:char_width$}", buffer, card.console_output());
+            buffer = format!("{}{:char_width$}", buffer, card);
         }
         format!("{}|\n{}", buffer, line)
     }
@@ -100,7 +100,7 @@ impl Deck {
 }
 
 impl Deref for Deck {
-    type Target = Vec<Card>;
+    type Target = Vec<u16>;
 
     fn deref(&self) -> &Self::Target {
         &self.map
