@@ -9,8 +9,8 @@ use crate::buttons::{ButtonAction, ButtonColors};
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::RegisterInspectable;
 use paper_plugin::{
-    events::DeckCompletedEvent, Board, BoardAssets, BoardOptions, BoardPosition, PaperPlugin,
-    SpriteMaterial,Collection
+    events::DeckCompletedEvent, Board, BoardAssets, BoardOptions, BoardPosition, Collection,
+    PaperPlugin, SpriteMaterial,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -99,9 +99,19 @@ fn setup_board(
             color: Color::WHITE,
         },
         col_map: HashMap::from([
-                               (Collection::Eng, asset_server.load_untyped("fonts/pixeled.ttf")),
-                               (Collection::Tel, asset_server.load_untyped("fonts/RaviPrakash.ttf")),
-        ])
+            (
+                Collection::Eng,
+                asset_server.load_untyped("fonts/pixeled.ttf"),
+            ),
+            (
+                Collection::Dice,
+                asset_server.load_untyped("fonts/Dicier-Block-Heavy.ttf"),
+            ),
+            (
+                Collection::Tel,
+                asset_server.load_untyped("fonts/RaviPrakash.ttf"),
+            ),
+        ]),
     });
     // Launch game
     state.set(AppState::InGame).unwrap();
@@ -118,28 +128,28 @@ fn setup_camera(mut commands: Commands) {
 fn input_handler(
     button_colors: Res<ButtonColors>,
     mut interaction_query: Query<
-    (&Interaction, &ButtonAction, &mut UiColor),
-    (Changed<Interaction>, With<Button>),
+        (&Interaction, &ButtonAction, &mut UiColor),
+        (Changed<Interaction>, With<Button>),
     >,
     mut board_options: ResMut<BoardOptions>,
     mut state: ResMut<State<AppState>>,
-    ) {
+) {
     for (interaction, action, mut color) in interaction_query.iter_mut() {
         match *interaction {
             Interaction::Clicked => {
                 *color = button_colors.pressed.into();
                 match action {
                     /*
-                       ButtonAction::Clear => {
-                       log::debug!("clearing detected");
-                       log::info!("clearing game");
-                       match state.current() {
-                       AppState::InGame => state.set(AppState::Out).unwrap(),
-                       AppState::Menu => state.replace(AppState::Out).unwrap(),
-                       _ => (),
-                       }
-                       }
-                       */
+                    ButtonAction::Clear => {
+                    log::debug!("clearing detected");
+                    log::info!("clearing game");
+                    match state.current() {
+                    AppState::InGame => state.set(AppState::Out).unwrap(),
+                    AppState::Menu => state.replace(AppState::Out).unwrap(),
+                    _ => (),
+                    }
+                    }
+                    */
                     ButtonAction::LevelUp => {
                         log::debug!("LevelUp");
                         log::info!("LevelUp");
@@ -195,7 +205,7 @@ fn restart_game_on_timer(
     time: Res<Time>,
     mut query: Query<(Entity, &mut RestartTimer)>,
     mut state: ResMut<State<AppState>>,
-    ) {
+) {
     for (entity, mut timer) in query.iter_mut() {
         if timer.0.tick(time.delta()).just_finished() {
             if state.current() != &AppState::InGame {
@@ -211,13 +221,14 @@ fn on_completion(
     mut commands: Commands,
     mut board_options: ResMut<BoardOptions>,
     mut board_complete_evr: EventReader<DeckCompletedEvent>,
-    ) {
+) {
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
         if let Some(b) = &board {
             if b.score < 2 * b.deck.len() as u32 {
                 board_options.deck_params.0 += 1;
                 board_options.deck_params.1 += 2;
+                //if(board_options.col_map.has(Collection::Dice
             }
         }
         commands
@@ -277,52 +288,52 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             color: Color::WHITE.into(),
             ..Default::default()
         })
-    .insert(Name::new("UI"))
+        .insert(Name::new("UI"))
         .with_children(|parent| {
             /*
-               setup_single_menu(
-               parent,
-               "CLEAR",
-               button_materials.normal.into(),
-               font.clone(),
-               ButtonAction::Clear,
-               );
-               */
+            setup_single_menu(
+            parent,
+            "CLEAR",
+            button_materials.normal.into(),
+            font.clone(),
+            ButtonAction::Clear,
+            );
+            */
             setup_single_menu(
                 parent,
                 "LevelUp",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::LevelUp,
-                );
+            );
             setup_single_menu(
                 parent,
                 "LevelDown",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::LevelDown,
-                );
+            );
             setup_single_menu(
                 parent,
                 "CoupletUp",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::CoupletUp,
-                );
+            );
             setup_single_menu(
                 parent,
                 "CoupletDown",
                 button_materials.normal.into(),
                 font.clone(),
                 ButtonAction::CoupletDown,
-                );
+            );
             setup_single_menu(
                 parent,
                 "GENERATE",
                 button_materials.normal.into(),
                 font,
                 ButtonAction::Generate,
-                );
+            );
         });
     commands.insert_resource(button_materials);
 }
@@ -333,7 +344,7 @@ fn setup_single_menu(
     color: UiColor,
     font: Handle<Font>,
     action: ButtonAction,
-    ) {
+) {
     parent
         .spawn_bundle(ButtonBundle {
             style: Style {
@@ -346,7 +357,7 @@ fn setup_single_menu(
             color,
             ..Default::default()
         })
-    .insert(action)
+        .insert(action)
         .insert(Name::new(text.to_string()))
         .with_children(|builder| {
             builder.spawn_bundle(TextBundle {

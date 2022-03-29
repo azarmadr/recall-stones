@@ -1,12 +1,12 @@
+pub use crate::components::Collection;
 use crate::components::*;
-use rand::seq::index::sample;
 use crate::deck::Deck;
 use crate::events::{CardFlipEvent, DeckCompletedEvent};
-pub use crate::resources::Collection;
 use bevy::ecs::schedule::StateData;
 use bevy::log;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
+use rand::seq::index::sample;
 //use bevy::render::view::Visibility;
 
 #[cfg(feature = "debug")]
@@ -28,11 +28,13 @@ pub struct PaperPlugin<T> {
 impl<T: StateData> Plugin for PaperPlugin<T> {
     fn build(&self, app: &mut App) {
         app.add_system_set(
-            SystemSet::on_enter(self.running_state.clone()).with_system(Self::create_board),
+            SystemSet::on_enter(self.running_state.clone())
+                .with_system(Self::create_board.label("create")),
         )
         .add_system_set(
             SystemSet::on_update(self.running_state.clone())
                 .with_system(systems::input::input_handling)
+                .with_system(systems::spawn::spawn_cards.after("create"))
                 .with_system(systems::uncover::trigger_event_handler),
         )
         .add_system_set(
@@ -77,14 +79,10 @@ impl<T> PaperPlugin<T> {
         // Setup
 
         // We define the size of our cards in world space
-        let card_size = match options.card_size {
-            CardSize::Fixed(v) => v,
-            CardSize::Adaptive { min, max } => Self::adaptative_card_size(
-                windows.get_primary().unwrap(),
-                (min, max),
-                (deck.width(), deck.height()),
-            ),
-        };
+        let card_size = options.adaptative_card_size(
+            windows.get_primary().unwrap(),
+            (deck.width(), deck.height()),
+        );
         // We deduce the size of the complete board
         let board_size = Vec2::new(
             deck.width() as f32 * card_size,
@@ -180,54 +178,48 @@ impl<T> PaperPlugin<T> {
         // Cards
         for (i, card) in deck.iter().enumerate() {
             let (x, y) = (i % deck.width() as usize, i / deck.width() as usize);
-            let coordinates = Idx(i as u16);
-            let mut cmd = parent.spawn();
+            let id = Idx(i as u16);
             let mut rng = rand::thread_rng();
             let couplets = deck.couplets() as usize;
-            let col = col_map.entry(card).or_insert(sample(&mut rng, couplets, couplets).iter().collect::<Vec<usize>>())
-                .pop().unwrap()%collections.len();
-            
-            // Card sprite
-            cmd.insert_bundle(SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::splat(size - padding)),
-                    color: board_assets.card_material.color,
-                    ..Default::default()
-                },
-                texture: board_assets.card_material.texture.clone(),
-                transform: Transform::from_xyz(
-                    (x as f32 * size) + (size / 2.),
-                    (y as f32 * size) + (size / 2.),
-                    1.,
-                ),
-                ..Default::default()
-            })
-            .insert(Name::new(format!("Card ({}, {})", x, y)));
-            cmd.with_children(|parent| {
-                let entity = parent
-                    .spawn_bundle(collections[col].translate(
-                        *card,
-                        deck.max(),
-                        size - padding,
-                        board_assets,
-                    ))
-                    .insert(Name::new("Card"))
-                    .insert(coordinates)
-                    .id();
-                hidden_cards.insert(coordinates, entity);
-            });
-        }
-    }
+            let col = col_map
+                .entry(card)
+                .or_insert(
+                    sample(&mut rng, couplets, couplets)
+                        .iter()
+                        .collect::<Vec<usize>>(),
+                )
+                .pop()
+                .unwrap()
+                % collections.len();
 
-    /// Computes a card size that matches the window according to the card map size
-    fn adaptative_card_size(
-        window: &Window,
-        (min, max): (f32, f32),
-        (width, height): (u16, u16),
-    ) -> f32 {
-        let max_width = window.width() / width as f32;
-        let max_heigth = window.height() / height as f32;
-        max_width.min(max_heigth).clamp(min, max)
+            // Card sprite
+            parent
+                .spawn()
+                .insert_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::splat(size - padding)),
+                        color: board_assets.card_material.color,
+                        ..Default::default()
+                    },
+                    texture: board_assets.card_material.texture.clone(),
+                    transform: Transform::from_xyz(
+                        (x as f32 * size) + (size / 2.),
+                        (y as f32 * size) + (size / 2.),
+                        1.,
+                    ),
+                    ..Default::default()
+                })
+                .insert(Name::new(format!("Card ({}, {})", x, y)))
+                .with_children(|parent| {
+                    let entity = parent
+                        .spawn()
+                        .insert(Name::new("Card"))
+                        .insert(id)
+                        .insert(collections[col])
+                        .id();
+                    hidden_cards.insert(id, entity);
+                });
+        }
     }
 
     fn cleanup_board(board: Res<Board>, mut commands: Commands) {

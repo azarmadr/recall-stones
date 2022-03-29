@@ -1,7 +1,7 @@
-use bevy::prelude::Vec3;
-use std::collections::HashSet;
-use crate::resources::Collection;
+use crate::components::Collection;
+use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 /// Card size options
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,7 +61,21 @@ impl Default for BoardOptions {
             position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,
-            collections: HashSet::from([Collection::Tel,Collection::Eng]),
+            collections: HashSet::from([Collection::Tel, Collection::Eng]),
+        }
+    }
+}
+
+impl BoardOptions {
+    /// Computes a card size that matches the window according to the card map size
+    pub fn adaptative_card_size(&self, window: &Window, (width, height): (u16, u16)) -> f32 {
+        match self.card_size {
+            CardSize::Fixed(v) => v,
+            CardSize::Adaptive { min, max } => {
+                let max_width = window.width() / width as f32;
+                let max_heigth = window.height() / height as f32;
+                max_width.min(max_heigth).clamp(min, max)
+            }
         }
     }
 }

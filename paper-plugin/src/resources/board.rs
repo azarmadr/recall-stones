@@ -46,6 +46,10 @@ impl Board {
             None => 1,
         }
     }
+    pub fn get_card_val(&self, id: &Idx) -> Option<&u16> {
+        let Idx(i) = *id;
+        self.deck.get(i as usize)
+    }
     /// reveal all the matching cards
     pub fn reveal_matching_cards(&mut self, ids: Vec<Idx>) {
         for e in ids.iter() {

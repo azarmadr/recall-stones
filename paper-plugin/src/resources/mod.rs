@@ -1,5 +1,4 @@
-pub use {board::*, board_assets::*, board_options::*,
-};
+pub use {board::*, board_assets::*, board_options::*};
 
 mod board;
 mod board_assets;
