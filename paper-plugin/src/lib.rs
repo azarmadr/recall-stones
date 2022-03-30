@@ -181,10 +181,11 @@ impl<T> PaperPlugin<T> {
             let id = Idx(i as u16);
             let mut rng = rand::thread_rng();
             let couplets = deck.couplets() as usize;
+            let sample_size = std::cmp::max(couplets,collections.len());
             let col = col_map
                 .entry(card)
                 .or_insert(
-                    sample(&mut rng, couplets, couplets)
+                    sample(&mut rng, sample_size, sample_size)
                         .iter()
                         .collect::<Vec<usize>>(),
                 )

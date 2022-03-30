@@ -76,25 +76,13 @@ pub fn render_revealed(parent: &mut ChildBuilder, count: u16, board_assets: &Boa
                 },
                 TextAlignment {
                     horizontal: HorizontalAlign::Left,
-                    vertical: VerticalAlign::Bottom,
+                    vertical: VerticalAlign::Top,
                 },
             ),
             transform: Transform::from_xyz(10., 0., 1.),
             ..Default::default()
         })
-        /*
-        .insert_bundle(SpriteBundle {
-        texture: board_assets.flag_material.texture.clone(),
-        sprite: Sprite {
-        custom_size: Some(Vec2::splat(board.card_size)),
-        color: board_assets.flag_material.color,
-        ..Default::default()
-        },
-        transform: Transform::from_xyz(0., 0., 1.),
-        ..Default::default()
-        })
-        */
-        .insert(Name::new("Flag"));
+        .insert(Name::new("Taps"));
 }
 pub fn trigger_event_handler(
     mut commands: Commands,

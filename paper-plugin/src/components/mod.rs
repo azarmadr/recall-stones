@@ -20,6 +20,7 @@ pub struct Revealed;
 pub enum Collection {
     Eng,
     Tel,
+    Clubs, Diamonds,Spades,Hearts,
     Dice,
 }
 

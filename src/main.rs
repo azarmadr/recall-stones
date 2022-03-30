@@ -3,7 +3,7 @@ mod buttons;
 use bevy::log;
 use bevy::log::{Level, LogSettings};
 use bevy::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 
 use crate::buttons::{ButtonAction, ButtonColors};
 #[cfg(feature = "debug")]
@@ -23,6 +23,7 @@ pub enum AppState {
 #[derive(Component)]
 pub struct RestartTimer(Timer);
 
+const SUITES:[Collection; 4] = [Collection::Spades,Collection::Hearts,Collection::Clubs,Collection::Diamonds];
 fn main() {
     let mut app = App::new();
     // Window setup
@@ -103,9 +104,25 @@ fn setup_board(
                 Collection::Eng,
                 asset_server.load_untyped("fonts/pixeled.ttf"),
             ),
-            (
+            /*(
                 Collection::Dice,
                 asset_server.load_untyped("fonts/Dicier-Block-Heavy.ttf"),
+            ),*/
+            (
+                Collection::Clubs,
+                asset_server.load_untyped("fonts/clubs.ttf"),
+            ),
+            (
+                Collection::Hearts,
+                asset_server.load_untyped("fonts/hearts.ttf"),
+            ),
+            (
+                Collection::Spades,
+                asset_server.load_untyped("fonts/spades.ttf"),
+            ),
+            (
+                Collection::Diamonds,
+                asset_server.load_untyped("fonts/diamonds.ttf"),
             ),
             (
                 Collection::Tel,
@@ -154,12 +171,14 @@ fn input_handler(
                         log::debug!("LevelUp");
                         log::info!("LevelUp");
                         board_options.deck_params.0 += 1;
+                        board_options.deck_params.1 += 1;
                     }
                     ButtonAction::LevelDown => {
                         log::debug!("LevelDown");
                         log::info!("LevelDown");
                         if board_options.deck_params.0 > 2 {
                             board_options.deck_params.0 -= 1;
+                            board_options.deck_params.1 -= 1;
                         }
                     }
                     ButtonAction::CoupletUp => {
@@ -228,7 +247,10 @@ fn on_completion(
             if b.score < 2 * b.deck.len() as u32 {
                 board_options.deck_params.0 += 1;
                 board_options.deck_params.1 += 2;
-                //if(board_options.col_map.has(Collection::Dice
+                if board_options.collections.intersection(&HashSet::from(SUITES)).count()>0&&(board_options.deck_params.0>13||board_options.deck_params.1>13) {
+                    board_options.deck_params.0 = 13;
+                    board_options.deck_params.1 = 13;
+                }
             }
         }
         commands

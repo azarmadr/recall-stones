@@ -1,4 +1,4 @@
-use crate::components::{Collection, Idx};
+use crate::components::{Collection,Collection::*, Idx};
 use crate::{Board, BoardAssets, BoardOptions};
 use bevy::prelude::*;
 use bevy::text::Text2dSize;
@@ -22,11 +22,19 @@ pub fn spawn_cards(
     for (entity, col, id) in children.iter() {
         commands.entity(entity).remove::<Collection>();
         if let Some(&val) = board.get_card_val(id) {
-            let color = board_assets.card_color(val, board.deck.max());
+            let color = match col {
+                Spades|Clubs => Color::BLACK,
+                Hearts|Diamonds => Color::RED,
+                _ => board_assets.card_color(val, board.deck.max()),
+            };
+            let value = match col {
+                Spades|Clubs|Hearts|Diamonds => char::from_digit(val as u32,14).unwrap().to_string(),
+                _ => val.to_string()
+            };
             commands.entity(entity).insert_bundle(Text2dBundle {
                 text: Text {
                     sections: vec![TextSection {
-                        value: val.to_string(),
+                        value,
                         style: TextStyle {
                             color,
                             font: board_assets.col_map.get(col).unwrap().clone().typed(),

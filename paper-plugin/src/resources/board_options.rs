@@ -61,7 +61,9 @@ impl Default for BoardOptions {
             position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,
-            collections: HashSet::from([Collection::Tel, Collection::Eng]),
+            collections: HashSet::from([Collection::Clubs,Collection::Hearts,Collection::Spades,Collection::Diamonds
+                                       //Collection::Tel, Collection::Eng
+            ]),
         }
     }
 }
