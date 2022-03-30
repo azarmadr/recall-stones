@@ -1,4 +1,4 @@
-use crate::components::Collection;
+use crate::components::{Collection, Collection::*};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -61,8 +61,8 @@ impl Default for BoardOptions {
             position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,
-            collections: HashSet::from([Collection::Clubs,Collection::Hearts,Collection::Spades,Collection::Diamonds
-                                       //Collection::Tel, Collection::Eng
+            collections: HashSet::from([
+                Clubs, Hearts, Spades, Diamonds, //Collection::Tel, Collection::Eng
             ]),
         }
     }
@@ -70,14 +70,20 @@ impl Default for BoardOptions {
 
 impl BoardOptions {
     /// Computes a card size that matches the window according to the card map size
-    pub fn adaptative_card_size(&self, window: &Window, (width, height): (u16, u16)) -> f32 {
+    pub fn adaptative_card_size(&self, window: (f32, f32), (width, height): (u16, u16)) -> f32 {
         match self.card_size {
             CardSize::Fixed(v) => v,
             CardSize::Adaptive { min, max } => {
-                let max_width = window.width() / width as f32;
-                let max_heigth = window.height() / height as f32;
+                let max_width = window.0 / width as f32;
+                let max_heigth = window.1 / height as f32;
                 max_width.min(max_heigth).clamp(min, max)
             }
         }
+    }
+    pub fn is_suits(&self) -> bool {
+        self.collections.contains(&Clubs)
+            || self.collections.contains(&Spades)
+            || self.collections.contains(&Hearts)
+            || self.collections.contains(&Diamonds)
     }
 }

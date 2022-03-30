@@ -79,8 +79,9 @@ impl<T> PaperPlugin<T> {
         // Setup
 
         // We define the size of our cards in world space
+        let window = windows.get_primary().unwrap();
         let card_size = options.adaptative_card_size(
-            windows.get_primary().unwrap(),
+            (window.width(), window.height()),
             (deck.width(), deck.height()),
         );
         // We deduce the size of the complete board
@@ -181,7 +182,7 @@ impl<T> PaperPlugin<T> {
             let id = Idx(i as u16);
             let mut rng = rand::thread_rng();
             let couplets = deck.couplets() as usize;
-            let sample_size = std::cmp::max(couplets,collections.len());
+            let sample_size = std::cmp::max(couplets, collections.len());
             let col = col_map
                 .entry(card)
                 .or_insert(

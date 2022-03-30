@@ -1,4 +1,4 @@
-use crate::components::{Collection,Collection::*, Idx};
+use crate::components::{Collection, Collection::*, Idx};
 use crate::{Board, BoardAssets, BoardOptions};
 use bevy::prelude::*;
 use bevy::text::Text2dSize;
@@ -9,27 +9,26 @@ pub fn spawn_cards(
     board_options: Option<Res<BoardOptions>>,
     board_assets: Res<BoardAssets>,
     children: Query<(Entity, &Collection, &Idx)>,
-    windows: Res<Windows>,
 ) {
-    let size = match board_options {
-        None => BoardOptions::default(), // If no options is set we use the default one
-        Some(o) => o.clone(),
-    }
-    .adaptative_card_size(
-        windows.get_primary().unwrap(),
-        (board.deck.width(), board.deck.height()),
-    );
+    let size = board.card_size
+        - match board_options {
+            Some(o) => o.clone(),
+            None => BoardOptions::default(),
+        }
+        .card_padding;
     for (entity, col, id) in children.iter() {
         commands.entity(entity).remove::<Collection>();
         if let Some(&val) = board.get_card_val(id) {
             let color = match col {
-                Spades|Clubs => Color::BLACK,
-                Hearts|Diamonds => Color::RED,
+                Spades | Clubs => Color::BLACK,
+                Hearts | Diamonds => Color::RED,
                 _ => board_assets.card_color(val, board.deck.max()),
             };
             let value = match col {
-                Spades|Clubs|Hearts|Diamonds => char::from_digit(val as u32,14).unwrap().to_string(),
-                _ => val.to_string()
+                Spades | Clubs | Hearts | Diamonds => {
+                    char::from_digit(val as u32, 14).unwrap().to_string()
+                }
+                _ => val.to_string(),
             };
             commands.entity(entity).insert_bundle(Text2dBundle {
                 text: Text {

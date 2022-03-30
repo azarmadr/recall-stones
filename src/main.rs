@@ -3,7 +3,7 @@ mod buttons;
 use bevy::log;
 use bevy::log::{Level, LogSettings};
 use bevy::prelude::*;
-use std::collections::{HashMap,HashSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::buttons::{ButtonAction, ButtonColors};
 #[cfg(feature = "debug")]
@@ -23,7 +23,12 @@ pub enum AppState {
 #[derive(Component)]
 pub struct RestartTimer(Timer);
 
-const SUITES:[Collection; 4] = [Collection::Spades,Collection::Hearts,Collection::Clubs,Collection::Diamonds];
+const SUITES: [Collection; 4] = [
+    Collection::Spades,
+    Collection::Hearts,
+    Collection::Clubs,
+    Collection::Diamonds,
+];
 fn main() {
     let mut app = App::new();
     // Window setup
@@ -247,7 +252,13 @@ fn on_completion(
             if b.score < 2 * b.deck.len() as u32 {
                 board_options.deck_params.0 += 1;
                 board_options.deck_params.1 += 2;
-                if board_options.collections.intersection(&HashSet::from(SUITES)).count()>0&&(board_options.deck_params.0>13||board_options.deck_params.1>13) {
+                if board_options
+                    .collections
+                    .intersection(&HashSet::from(SUITES))
+                    .count()
+                    > 0
+                    && (board_options.deck_params.0 > 13 || board_options.deck_params.1 > 13)
+                {
                     board_options.deck_params.0 = 13;
                     board_options.deck_params.1 = 13;
                 }
