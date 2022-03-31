@@ -187,7 +187,7 @@ impl<T> PaperPlugin<T> {
             let mut rng = rand::thread_rng();
             let couplets = deck.couplets() as usize;
             let sample_size = std::cmp::max(couplets, collections.len());
-            let rand_bool =  rng.gen_bool(0.5)
+            let rand_bool =  rng.gen_bool(0.5);
             let col = col_map
                 .entry(card)
                 .or_insert(
