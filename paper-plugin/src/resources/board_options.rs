@@ -80,7 +80,7 @@ impl BoardOptions {
             }
         }
     }
-    pub fn is_suits(&self) -> bool {
+    pub fn col_is_suites(&self) -> bool {
         self.collections.contains(&Clubs)
             || self.collections.contains(&Spades)
             || self.collections.contains(&Hearts)

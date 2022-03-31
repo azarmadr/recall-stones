@@ -23,12 +23,6 @@ pub enum AppState {
 #[derive(Component)]
 pub struct RestartTimer(Timer);
 
-const SUITES: [Collection; 4] = [
-    Collection::Spades,
-    Collection::Hearts,
-    Collection::Clubs,
-    Collection::Diamonds,
-];
 fn main() {
     let mut app = App::new();
     // Window setup
@@ -252,15 +246,14 @@ fn on_completion(
             if b.score < 2 * b.deck.len() as u32 {
                 board_options.deck_params.0 += 1;
                 board_options.deck_params.1 += 2;
-                if board_options
-                    .collections
-                    .intersection(&HashSet::from(SUITES))
-                    .count()
-                    > 0
-                    && (board_options.deck_params.0 > 13 || board_options.deck_params.1 > 13)
+                if board_options.col_is_suites()
                 {
-                    board_options.deck_params.0 = 13;
-                    board_options.deck_params.1 = 13;
+                    if board_options.deck_params.0 > 14 {
+                        board_options.deck_params.0 = 14;
+                    }
+                    if board_options.deck_params.1 > 14 {
+                        board_options.deck_params.1 = 14;
+                    }
                 }
             }
         }

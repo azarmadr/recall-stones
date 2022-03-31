@@ -143,7 +143,7 @@ impl<T> PaperPlugin<T> {
                     parent,
                     &deck,
                     card_size,
-                    options.is_suits(),
+                    options.col_is_suites(),
                     options.collections.into_iter().collect::<Vec<_>>(),
                     options.card_padding,
                     &board_assets,
@@ -171,7 +171,7 @@ impl<T> PaperPlugin<T> {
         parent: &mut ChildBuilder,
         deck: &Deck,
         size: f32,
-        is_suits: bool,
+        col_is_suites: bool,
         collections: Vec<Collection>,
         padding: f32,
         board_assets: &Res<BoardAssets>,
@@ -193,7 +193,7 @@ impl<T> PaperPlugin<T> {
                 .or_insert(
                     sample(&mut rng, sample_size, sample_size)
                         .iter()
-                        .filter(|&x| !is_suits || match rand_bool {
+                        .filter(|&x| !col_is_suites || match rand_bool {
                             true => x % 2 == 1, false => x % 2 ==0
                         })
                         .collect::<Vec<usize>>(),
