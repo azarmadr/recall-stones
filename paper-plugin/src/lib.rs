@@ -143,6 +143,7 @@ impl<T> PaperPlugin<T> {
                     parent,
                     &deck,
                     card_size,
+                    options.is_suits(),
                     options.collections.into_iter().collect::<Vec<_>>(),
                     options.card_padding,
                     &board_assets,
@@ -170,24 +171,31 @@ impl<T> PaperPlugin<T> {
         parent: &mut ChildBuilder,
         deck: &Deck,
         size: f32,
+        is_suits: bool,
         collections: Vec<Collection>,
         padding: f32,
         board_assets: &Res<BoardAssets>,
         hidden_cards: &mut HashMap<Idx, Entity>,
     ) {
         let mut col_map = HashMap::new();
+        log::info!("collections: {:?}", collections);
         // Cards
         for (i, card) in deck.iter().enumerate() {
             let (x, y) = (i % deck.width() as usize, i / deck.width() as usize);
             let id = Idx(i as u16);
+            use rand::Rng;
             let mut rng = rand::thread_rng();
             let couplets = deck.couplets() as usize;
             let sample_size = std::cmp::max(couplets, collections.len());
+            let rand_bool =  rng.gen_bool(0.5)
             let col = col_map
                 .entry(card)
                 .or_insert(
                     sample(&mut rng, sample_size, sample_size)
                         .iter()
+                        .filter(|&x| !is_suits || match rand_bool {
+                            true => x % 2 == 1, false => x % 2 ==0
+                        })
                         .collect::<Vec<usize>>(),
                 )
                 .pop()
