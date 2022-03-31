@@ -64,6 +64,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           override: true
+          target: wasm32-unknown-unknown
       - name: Check wasm
         uses: actions-rs/cargo@v1.0.1
         with:
