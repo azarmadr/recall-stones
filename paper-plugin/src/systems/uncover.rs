@@ -1,97 +1,184 @@
-use crate::components::{Idx, Open, Revealed, Score};
+use crate::components::{Idx, Open,Close, Revealed, Score};
 use crate::events::{CardFlipEvent, DeckCompletedEvent};
 use crate::{Board, BoardAssets};
 use bevy::log;
 use bevy::prelude::*;
 use bevy::render::view::Visibility;
+use bevy_tweening::{lens::*, *};
 
+pub fn deck_complete(mut board: ResMut<Board>, mut event: EventWriter<DeckCompletedEvent>) {
+    if !board.completed && board.hidden_cards.is_empty() {
+        log::info!("Deck Completed");
+        board.completed = true;
+        event.send(DeckCompletedEvent);
+    }
+}
 pub fn flip_cards(
     mut commands: Commands,
     mut board: ResMut<Board>,
-    board_assets: Res<BoardAssets>,
-    children: Query<(Entity, &Idx), With<Open>>,
+    children: Query<(Entity, &Idx, &Parent), With<Open>>,
     mut score: Query<&mut Text, With<Score>>,
-    mut visibility: Query<&mut Visibility>,
-    mut deck_complete_ewr: EventWriter<DeckCompletedEvent>,
+    transform: Query<&Transform>,
 ) {
     let deck_len = board.deck.couplets() as usize;
     let mut text = score.single_mut();
-    for (entity, _) in children.iter() {
-        if let Ok(mut visibility) = visibility.get_mut(entity) {
-            visibility.is_visible = true;
-        }
-    }
     match children.iter().count() {
         x if x == deck_len => {
             board.reveal_matching_cards(children.iter().map(|x| *x.1).collect());
-            for (entity, id) in children.iter() {
+            for (entity, id, parent) in children.iter() {
                 commands.entity(entity).remove::<Open>();
                 if board.is_revealed(id) {
-                    commands
-                        .entity(entity)
-                        .insert(Revealed)
-                        .with_children(|parent| {
-                            render_revealed(parent, board.opened_count(id), &board_assets)
-                        });
+                    commands.entity(entity).insert(Revealed);
+                } else {
+                    let Transform { translation, .. } = transform.get(parent.0).unwrap();
+                    let mut seq =
+                        Sequence::from_single(Delay::new(std::time::Duration::from_secs(0)));
+                    for i in (1..4).rev() {
+                        seq = seq.then(Tween::new(
+                            EaseFunction::ElasticInOut,
+                            TweeningType::Once,
+                            std::time::Duration::from_millis(243*i),
+                            TransformPositionLens {
+                                start: *translation - (Vec3::X*i as f32),
+                                end: *translation,
+                            },
+                        )).then(Tween::new(
+                            EaseFunction::ElasticInOut,
+                            TweeningType::Once,
+                            std::time::Duration::from_millis(243),
+                            TransformPositionLens {
+                                start: Vec3::X * i as f32 + *translation,
+                                end: *translation,
+                            },
+                        ))
+                    }
+                    commands.entity(parent.0).insert(Animator::new(seq));
+                    commands.entity(entity).insert(Close);
                 }
             }
-            board.score += 1;
+            board.turns += 1;
             let rem_cards = match board.hidden_cards.len() {
                 0 => board.deck.count(),
                 _ => board.hidden_cards.len() as u16 / 2,
             };
             text.sections[0].value = format!(
                 "turns: {}\nLuck: {}\nPerfect Memory: {}",
-                board.score,
+                board.turns,
                 rem_cards,
                 rem_cards * 2 - 1
             );
         }
-        1 => {
-            for &entity in board.hidden_cards.values() {
-                if let Ok(mut visibility) = visibility.get_mut(entity) {
-                    if let Err(..) = children.get(entity) {
-                        visibility.is_visible = false;
-                    }
-                }
-            }
-        }
         _ => (),
     }
-    if !board.completed && board.hidden_cards.is_empty() {
-        log::info!("Deck Completed");
-        board.completed = true;
-        deck_complete_ewr.send(DeckCompletedEvent);
+}
+pub fn close_cards(
+    mut commands: Commands,
+    children: Query<(Entity, &Parent), With<Close>>,
+    open: Query<(), With<Open>>
+){
+    if let Ok(_) = open.get_single() {
+    for (entity, &parent) in children.iter() {
+            let rot_time = std::time::Duration::from_millis(81);
+            let show_time = std::time::Duration::from_millis(27);
+            let rot_seq = Tween::new(
+                EaseFunction::QuadraticIn,
+                TweeningType::Once,
+                rot_time,
+                TransformRotateYLens { start: 0., end:std::f32::consts::PI/2. }
+            ).then(Sequence::from_single(Delay::new(show_time))
+                   ).then(Tween::new(
+                EaseFunction::QuadraticOut,
+                TweeningType::Once,
+                rot_time,
+                TransformRotateYLens { end: 0., start:std::f32::consts::PI/2. }
+            ));
+            let vis_seq = Sequence::from_single(Delay::new(rot_time)).then(Tween::new(
+                EaseFunction::QuadraticIn,
+                TweeningType::Once,
+                show_time,
+                VisibilityLens { show: false }
+            ));
+            commands.entity(parent.0).insert(Animator::new(rot_seq));
+            commands .entity(entity) .insert(Animator::new(vis_seq));
+            commands.entity(entity).remove::<Close>();
+    }
     }
 }
-pub fn render_revealed(parent: &mut ChildBuilder, count: u16, board_assets: &BoardAssets) {
-    parent
-        .spawn_bundle(Text2dBundle {
-            text: Text::with_section(
-                count.to_string(),
-                TextStyle {
-                    color: board_assets.count_color(count),
-                    font: board_assets.counter_font.clone(),
-                    font_size: 27.,
-                },
-                TextAlignment {
-                    horizontal: HorizontalAlign::Left,
-                    vertical: VerticalAlign::Top,
-                },
-            ),
-            transform: Transform::from_xyz(10., 0., 1.),
-            ..Default::default()
-        })
-        .insert(Name::new("Taps"));
+pub fn render_revealed(
+    mut commands: Commands,
+    board: Res<Board>,
+    board_assets: Res<BoardAssets>,
+    revealed: Query<(Entity, &Idx), With<Revealed>>,
+) {
+    for (entity, id) in revealed.iter() {
+        let count = board.opened_count(id);
+        commands.entity(entity).remove::<Revealed>();
+        commands
+            .entity(entity)
+            .insert(Name::new("Revealed"))
+            .with_children(|parent| {
+                parent.spawn_bundle(Text2dBundle {
+                    text: Text::with_section(
+                        count.to_string(),
+                        TextStyle {
+                            color: board_assets.count_color(count),
+                            font: board_assets.counter_font.clone(),
+                            font_size: 27.,
+                        },
+                        TextAlignment {
+                            horizontal: HorizontalAlign::Left,
+                            vertical: VerticalAlign::Top,
+                        },
+                    ),
+                    transform: Transform::from_xyz(10., 0., 1.),
+                    ..Default::default()
+                });
+            });
+    }
+}
+struct VisibilityLens {
+    /// boolean to decide whether to show the component. true -> shows.
+    show: bool,
+}
+impl Lens<Visibility> for VisibilityLens {
+    fn lerp(&mut self, target: &mut Visibility, ratio: f32) {
+        target.is_visible = self.show ^ (ratio < 0.5);
+    }
 }
 pub fn trigger_event_handler(
     mut commands: Commands,
     board: Res<Board>,
     mut flip_card_evr: EventReader<CardFlipEvent>,
+    parent: Query<&Parent>,
 ) {
     for trigger_event in flip_card_evr.iter() {
         if let Some(entity) = board.flip_card(&trigger_event.0) {
-            commands.entity(*entity).insert(Open);
+            let rot_time = std::time::Duration::from_millis(81);
+            let show_time = std::time::Duration::from_millis(27);
+            let rot_seq = Tween::new(
+                EaseFunction::QuadraticIn,
+                TweeningType::Once,
+                rot_time,
+                TransformRotateYLens { start: 0., end:std::f32::consts::PI/2. }
+            ).then(Sequence::from_single(Delay::new(show_time))
+                   ).then(Tween::new(
+                EaseFunction::QuadraticOut,
+                TweeningType::Once,
+                rot_time,
+                TransformRotateYLens { end: 0., start:std::f32::consts::PI/2. }
+            ));
+            let vis_seq = Sequence::from_single(Delay::new(rot_time)).then(Tween::new(
+                EaseFunction::QuadraticIn,
+                TweeningType::Once,
+                show_time,
+                VisibilityLens { show: true }
+            ));
+
+            commands.entity(parent.get(*entity).unwrap().0).insert(Animator::new(rot_seq));
+            commands
+                .entity(*entity)
+                .insert(Open)
+                .insert(Animator::new(vis_seq));
         }
     }
 }

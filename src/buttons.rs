@@ -12,7 +12,7 @@ pub enum ButtonAction {
     Generate,
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct ButtonColors {
     pub normal: Color,
     pub hovered: Color,

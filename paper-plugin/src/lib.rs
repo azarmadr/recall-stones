@@ -6,7 +6,9 @@ use bevy::ecs::schedule::StateData;
 use bevy::log;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
+use bevy_tweening::{lens::*, *};
 use rand::seq::index::sample;
+use std::time::Duration;
 //use bevy::render::view::Visibility;
 
 #[cfg(feature = "debug")]
@@ -21,6 +23,7 @@ pub mod events;
 mod resources;
 mod systems;
 
+#[derive(Default)]
 pub struct PaperPlugin<T> {
     pub running_state: T,
 }
@@ -35,15 +38,19 @@ impl<T: StateData> Plugin for PaperPlugin<T> {
             SystemSet::on_update(self.running_state.clone())
                 .with_system(systems::input::input_handling)
                 .with_system(systems::spawn::spawn_cards.after("create"))
-                .with_system(systems::uncover::trigger_event_handler),
+                .with_system(systems::uncover::trigger_event_handler)
+                .with_system(systems::uncover::close_cards)
+                .with_system(systems::uncover::deck_complete),
         )
         .add_system_set(
             SystemSet::on_in_stack_update(self.running_state.clone())
+                .with_system(systems::uncover::render_revealed)
                 .with_system(systems::uncover::flip_cards),
         )
         .add_system_set(
             SystemSet::on_exit(self.running_state.clone()).with_system(Self::cleanup_board),
         )
+        .add_system(component_animator_system::<Visibility>)
         .add_event::<CardFlipEvent>()
         .add_event::<DeckCompletedEvent>();
         #[cfg(feature = "debug")]
@@ -144,7 +151,7 @@ impl<T> PaperPlugin<T> {
                     &deck,
                     card_size,
                     options.col_is_suites(),
-                    options.collections.into_iter().collect::<Vec<_>>(),
+                    options.collections,
                     options.card_padding,
                     &board_assets,
                     &mut hidden_cards,
@@ -158,7 +165,7 @@ impl<T> PaperPlugin<T> {
                 position: board_position.xy(),
                 size: board_size,
             },
-            score: 0,
+            turns: 0,
             completed: false,
             card_size,
             hidden_cards,
@@ -180,6 +187,7 @@ impl<T> PaperPlugin<T> {
         let mut col_map = HashMap::new();
         log::info!("collections: {:?}", collections);
         // Cards
+        let mut start_time_ms = 0;
         for (i, card) in deck.iter().enumerate() {
             let (x, y) = (i % deck.width() as usize, i / deck.width() as usize);
             let id = Idx(i as u16);
@@ -187,25 +195,34 @@ impl<T> PaperPlugin<T> {
             let mut rng = rand::thread_rng();
             let couplets = deck.couplets() as usize;
             let sample_size = std::cmp::max(couplets, collections.len());
-            let rand_bool =  rng.gen_bool(0.5);
+            let rand_bool = rng.gen_bool(0.5) as usize;
             let col = col_map
                 .entry(card)
                 .or_insert(
                     sample(&mut rng, sample_size, sample_size)
                         .iter()
-                        .filter(|&x| !col_is_suites || match rand_bool {
-                            true => x % 2 == 1, false => x % 2 ==0
-                        })
+                        .filter(|&x| !col_is_suites || rand_bool == x % 2)
                         .collect::<Vec<usize>>(),
                 )
                 .pop()
                 .unwrap()
                 % collections.len();
 
+            let delay = Delay::new(Duration::from_millis(start_time_ms));
+            start_time_ms += 81;
+            let tween_scale = Tween::new(
+                EaseFunction::BounceOut,
+                TweeningType::Once,
+                Duration::from_millis(243),
+                TransformScaleLens {
+                    start: Vec3::splat(0.27),
+                    end: Vec3::ONE,
+                },
+            );
+            let seq = delay.then(tween_scale);
             // Card sprite
             parent
-                .spawn()
-                .insert_bundle(SpriteBundle {
+                .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
                         custom_size: Some(Vec2::splat(size - padding)),
                         color: board_assets.card_material.color,
@@ -219,6 +236,7 @@ impl<T> PaperPlugin<T> {
                     ),
                     ..Default::default()
                 })
+                .insert(Animator::new(seq))
                 .insert(Name::new(format!("Card ({}, {})", x, y)))
                 .with_children(|parent| {
                     let entity = parent

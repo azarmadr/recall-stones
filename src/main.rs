@@ -1,17 +1,17 @@
 mod buttons;
 
+use crate::buttons::{ButtonAction, ButtonColors};
+use autodefault::autodefault;
 use bevy::log;
 use bevy::log::{Level, LogSettings};
 use bevy::prelude::*;
-use std::collections::{HashMap, HashSet};
-
-use crate::buttons::{ButtonAction, ButtonColors};
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::RegisterInspectable;
 use paper_plugin::{
     events::DeckCompletedEvent, Board, BoardAssets, BoardOptions, BoardPosition, Collection,
     PaperPlugin, SpriteMaterial,
 };
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
@@ -38,7 +38,8 @@ fn main() {
         ..Default::default()
     })
     // Bevy default plugins
-    .add_plugins(DefaultPlugins);
+    .add_plugins(DefaultPlugins)
+    .add_plugin(bevy_tweening::TweeningPlugin);
     // Debug hierarchy inspector
     #[cfg(feature = "debug")]
     {
@@ -243,11 +244,10 @@ fn on_completion(
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
         if let Some(b) = &board {
-            if b.score < 2 * b.deck.len() as u32 {
+            if b.turns < 2 * b.deck.len() as u32 {
                 board_options.deck_params.0 += 1;
                 board_options.deck_params.1 += 2;
-                if board_options.col_is_suites()
-                {
+                if board_options.col_is_suites() {
                     if board_options.deck_params.0 > 14 {
                         board_options.deck_params.0 = 14;
                     }
@@ -263,6 +263,7 @@ fn on_completion(
     }
 }
 
+#[autodefault]
 fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     let button_materials = ButtonColors {
         normal: Color::GRAY,
@@ -277,14 +278,9 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 position_type: PositionType::Absolute,
-                position: Rect {
-                    top: Val::Px(0.),
-                    ..Default::default()
-                },
-                ..Default::default()
+                position: Rect { top: Val::Px(0.) },
             },
             color: Color::BLACK.into(),
-            ..Default::default()
         })
     .insert(Name::new("Instructions"))
         .with_children(|parent| {
@@ -300,7 +296,6 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                         horizontal: HorizontalAlign::Left,
                     },
                 },
-                ..Default::default()
             });
         });
     commands
@@ -309,10 +304,8 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 size: Size::new(Val::Percent(100.), Val::Px(50.)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                ..Default::default()
             },
             color: Color::WHITE.into(),
-            ..Default::default()
         })
         .insert(Name::new("UI"))
         .with_children(|parent| {
@@ -364,6 +357,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(button_materials);
 }
 
+#[autodefault]
 fn setup_single_menu(
     parent: &mut ChildBuilder,
     text: &str,
@@ -378,10 +372,8 @@ fn setup_single_menu(
                 margin: Rect::all(Val::Px(10.)),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                ..Default::default()
             },
             color,
-            ..Default::default()
         })
         .insert(action)
         .insert(Name::new(text.to_string()))
@@ -401,7 +393,6 @@ fn setup_single_menu(
                         horizontal: HorizontalAlign::Center,
                     },
                 },
-                ..Default::default()
             });
         });
 }

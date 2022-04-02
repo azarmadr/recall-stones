@@ -156,6 +156,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "autodefault"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "976847e448316b6cb8fda60cda1067bc645268a8209f80b96f4e1d66c1029087"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -646,6 +657,16 @@ dependencies = [
  "bevy_reflect",
  "bevy_utils",
  "smallvec",
+]
+
+[[package]]
+name = "bevy_tweening"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54acb3b5826a128c012b596147cf83f6e7a639ec39c0c70c386836def2bd8e75"
+dependencies = [
+ "bevy",
+ "interpolation",
 ]
 
 [[package]]
@@ -1475,6 +1496,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "interpolation"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3b7357d2bbc5ee92f8e899ab645233e43d21407573cceb37fed8bc3dede2c02"
+
+[[package]]
 name = "itoa"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1845,8 +1872,10 @@ dependencies = [
 name = "paper-plugin"
 version = "0.1.0"
 dependencies = [
+ "autodefault",
  "bevy",
  "bevy-inspector-egui",
+ "bevy_tweening",
  "colored",
  "getrandom",
  "rand",
@@ -2028,8 +2057,10 @@ dependencies = [
 name = "recall-stones"
 version = "0.1.0"
 dependencies = [
+ "autodefault",
  "bevy",
  "bevy-inspector-egui",
+ "bevy_tweening",
  "paper-plugin",
 ]
 

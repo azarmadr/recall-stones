@@ -12,7 +12,7 @@ pub struct Board {
     pub hidden_cards: HashMap<Idx, Entity>,
     pub opened_count: HashMap<Idx, u16>,
     pub entity: Entity,
-    pub score: u32,
+    pub turns: u32,
     pub completed: bool,
 }
 

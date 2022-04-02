@@ -13,6 +13,8 @@ debug = ["colored", "bevy-inspector-egui"]
 [dependencies]
 serde = "1.0"
 rand = "0.8"
+autodefault = "2.0.0"
+bevy_tweening = "0.3"
 
 # Console Debug
 [dependencies.colored]

@@ -23,7 +23,7 @@ impl Default for SpriteMaterial {
 /// Assets for the board. Must be used as a resource.
 ///
 /// Use the loader for partial setup
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct BoardAssets {
     /// Label
     pub label: String,
