@@ -1,10 +1,14 @@
-use crate::components::{Idx, Open,Close, Revealed, Score};
+use crate::components::{Close, Idx, Open, Revealed, Score};
 use crate::events::{CardFlipEvent, DeckCompletedEvent};
 use crate::{Board, BoardAssets};
 use bevy::log;
 use bevy::prelude::*;
 use bevy::render::view::Visibility;
 use bevy_tweening::{lens::*, *};
+use std::time::Duration;
+
+const SHOW_TIME: Duration = Duration::from_millis(27);
+const ROT_TIME: Duration = Duration::from_millis(81);
 
 pub fn deck_complete(mut board: ResMut<Board>, mut event: EventWriter<DeckCompletedEvent>) {
     if !board.completed && board.hidden_cards.is_empty() {
@@ -30,30 +34,31 @@ pub fn flip_cards(
                 if board.is_revealed(id) {
                     commands.entity(entity).insert(Revealed);
                 } else {
+                    commands.entity(entity).insert(Close);
                     let Transform { translation, .. } = transform.get(parent.0).unwrap();
-                    let mut seq =
-                        Sequence::from_single(Delay::new(std::time::Duration::from_secs(0)));
+                    let mut seq = Sequence::from_single(Delay::new(ROT_TIME + SHOW_TIME));
                     for i in (1..4).rev() {
-                        seq = seq.then(Tween::new(
-                            EaseFunction::ElasticInOut,
-                            TweeningType::Once,
-                            std::time::Duration::from_millis(243*i),
-                            TransformPositionLens {
-                                start: *translation - (Vec3::X*i as f32),
-                                end: *translation,
-                            },
-                        )).then(Tween::new(
-                            EaseFunction::ElasticInOut,
-                            TweeningType::Once,
-                            std::time::Duration::from_millis(243),
-                            TransformPositionLens {
-                                start: Vec3::X * i as f32 + *translation,
-                                end: *translation,
-                            },
-                        ))
+                        seq = seq
+                            .then(Tween::new(
+                                EaseFunction::ElasticInOut,
+                                TweeningType::Once,
+                                SHOW_TIME*i,
+                                TransformPositionLens {
+                                    start: *translation - (Vec3::X * i as f32),
+                                    end: *translation,
+                                },
+                            ))
+                            .then(Tween::new(
+                                EaseFunction::ElasticInOut,
+                                TweeningType::Once,
+                                SHOW_TIME*i,
+                                TransformPositionLens {
+                                    start: Vec3::X * i as f32 + *translation,
+                                    end: *translation,
+                                },
+                            ))
                     }
                     commands.entity(parent.0).insert(Animator::new(seq));
-                    commands.entity(entity).insert(Close);
                 }
             }
             board.turns += 1;
@@ -74,34 +79,41 @@ pub fn flip_cards(
 pub fn close_cards(
     mut commands: Commands,
     children: Query<(Entity, &Parent), With<Close>>,
-    open: Query<(), With<Open>>
-){
-    if let Ok(_) = open.get_single() {
-    for (entity, &parent) in children.iter() {
-            let rot_time = std::time::Duration::from_millis(81);
-            let show_time = std::time::Duration::from_millis(27);
+    open: Query<Entity, With<Open>>,
+) {
+    if let Ok(opened) = open.get_single() {
+        for (entity, &parent) in children.iter() {
+            if entity != opened {
             let rot_seq = Tween::new(
                 EaseFunction::QuadraticIn,
                 TweeningType::Once,
-                rot_time,
-                TransformRotateYLens { start: 0., end:std::f32::consts::PI/2. }
-            ).then(Sequence::from_single(Delay::new(show_time))
-                   ).then(Tween::new(
+                ROT_TIME,
+                TransformRotateYLens {
+                    start: 0.,
+                    end: std::f32::consts::PI / 2.,
+                },
+            )
+            .then(Sequence::from_single(Delay::new(SHOW_TIME)))
+            .then(Tween::new(
                 EaseFunction::QuadraticOut,
                 TweeningType::Once,
-                rot_time,
-                TransformRotateYLens { end: 0., start:std::f32::consts::PI/2. }
+                ROT_TIME,
+                TransformRotateYLens {
+                    end: 0.,
+                    start: std::f32::consts::PI / 2.,
+                },
             ));
-            let vis_seq = Sequence::from_single(Delay::new(rot_time)).then(Tween::new(
+            let vis_seq = Sequence::from_single(Delay::new(ROT_TIME)).then(Tween::new(
                 EaseFunction::QuadraticIn,
                 TweeningType::Once,
-                show_time,
-                VisibilityLens { show: false }
+                SHOW_TIME,
+                VisibilityLens { show: false },
             ));
             commands.entity(parent.0).insert(Animator::new(rot_seq));
-            commands .entity(entity) .insert(Animator::new(vis_seq));
-            commands.entity(entity).remove::<Close>();
+            commands.entity(entity).insert(Animator::new(vis_seq));
     }
+            commands.entity(entity).remove::<Close>();
+        }
     }
 }
 pub fn render_revealed(
@@ -153,28 +165,35 @@ pub fn trigger_event_handler(
 ) {
     for trigger_event in flip_card_evr.iter() {
         if let Some(entity) = board.flip_card(&trigger_event.0) {
-            let rot_time = std::time::Duration::from_millis(81);
-            let show_time = std::time::Duration::from_millis(27);
             let rot_seq = Tween::new(
                 EaseFunction::QuadraticIn,
                 TweeningType::Once,
-                rot_time,
-                TransformRotateYLens { start: 0., end:std::f32::consts::PI/2. }
-            ).then(Sequence::from_single(Delay::new(show_time))
-                   ).then(Tween::new(
+                ROT_TIME,
+                TransformRotateYLens {
+                    start: 0.,
+                    end: std::f32::consts::PI / 2.,
+                },
+            )
+            .then(Sequence::from_single(Delay::new(SHOW_TIME)))
+            .then(Tween::new(
                 EaseFunction::QuadraticOut,
                 TweeningType::Once,
-                rot_time,
-                TransformRotateYLens { end: 0., start:std::f32::consts::PI/2. }
+                ROT_TIME,
+                TransformRotateYLens {
+                    end: 0.,
+                    start: std::f32::consts::PI / 2.,
+                },
             ));
-            let vis_seq = Sequence::from_single(Delay::new(rot_time)).then(Tween::new(
+            let vis_seq = Sequence::from_single(Delay::new(ROT_TIME)).then(Tween::new(
                 EaseFunction::QuadraticIn,
                 TweeningType::Once,
-                show_time,
-                VisibilityLens { show: true }
+                SHOW_TIME,
+                VisibilityLens { show: true },
             ));
 
-            commands.entity(parent.get(*entity).unwrap().0).insert(Animator::new(rot_seq));
+            commands
+                .entity(parent.get(*entity).unwrap().0)
+                .insert(Animator::new(rot_seq));
             commands
                 .entity(*entity)
                 .insert(Open)
