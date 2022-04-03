@@ -42,10 +42,11 @@ jobs:
           cp index.html public
           cp -r assets public
           wasm-bindgen --out-dir public --target web target/wasm32-unknown-unknown/release/recall-stones.wasm
-          git checkout --orphan gh-pages
-          git reset --hard
-          git commit --allow-empty -m "fresh and empty gh-pages branch"
-          git push origin gh-pages
+      - uses: crazy-max/ghaction-github-pages@v2.6.0
+        with:
+          build_dir: public
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: josephbmanley/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
