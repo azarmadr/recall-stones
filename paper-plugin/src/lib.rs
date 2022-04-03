@@ -31,21 +31,20 @@ pub struct PaperPlugin<T> {
 impl<T: StateData> Plugin for PaperPlugin<T> {
     fn build(&self, app: &mut App) {
         app.add_system_set(
-            SystemSet::on_enter(self.running_state.clone())
-                .with_system(Self::create_board.label("create")),
+            SystemSet::on_enter(self.running_state.clone()).with_system(Self::create_board),
         )
         .add_system_set(
             SystemSet::on_update(self.running_state.clone())
                 .with_system(systems::input::input_handling)
-                .with_system(systems::spawn::spawn_cards.after("create"))
-                .with_system(systems::uncover::trigger_event_handler)
+                .with_system(systems::spawn::spawn_cards)
+                .with_system(systems::uncover::open_card)
                 .with_system(systems::uncover::close_cards)
                 .with_system(systems::uncover::deck_complete),
         )
         .add_system_set(
             SystemSet::on_in_stack_update(self.running_state.clone())
-                .with_system(systems::uncover::render_revealed)
-                .with_system(systems::uncover::flip_cards),
+                .with_system(systems::uncover::reveal_cards)
+                .with_system(systems::uncover::score),
         )
         .add_system_set(
             SystemSet::on_exit(self.running_state.clone()).with_system(Self::cleanup_board),
@@ -185,7 +184,6 @@ impl<T> PaperPlugin<T> {
         hidden_cards: &mut HashMap<Idx, Entity>,
     ) {
         let mut col_map = HashMap::new();
-        log::info!("collections: {:?}", collections);
         // Cards
         let mut start_time_ms = 0;
         for (i, card) in deck.iter().enumerate() {
