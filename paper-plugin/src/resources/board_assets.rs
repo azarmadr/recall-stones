@@ -25,14 +25,10 @@ impl Default for SpriteMaterial {
 /// Use the loader for partial setup
 #[derive(Default, Debug, Clone)]
 pub struct BoardAssets {
-    /// Label
-    pub label: String,
     pub board_material: SpriteMaterial,
     pub card_material: SpriteMaterial,
-    pub covered_card_material: SpriteMaterial,
-    pub counter_font: Handle<Font>,
+    pub score_font: Handle<Font>,
     pub card_color: Vec<Color>,
-    pub material: SpriteMaterial,
     pub col_map: HashMap<Collection, HandleUntyped>,
 }
 

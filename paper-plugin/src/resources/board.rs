@@ -32,25 +32,34 @@ impl Board {
     }
 
     /// Retrieves a covered tile entity
+    #[inline]
+    #[must_use]
     pub fn flip_card(&self, id: &Idx) -> Option<&Entity> {
         self.hidden_cards.get(id)
     }
 
+    #[inline]
+    #[must_use]
     pub fn is_revealed(&self, id: &Idx) -> bool {
         !self.hidden_cards.contains_key(id)
     }
 
+    #[inline]
+    #[must_use]
     pub fn opened_count(&self, id: &Idx) -> u16 {
         match self.opened_count.get(id) {
             Some(v) => *v,
             None => 1,
         }
     }
+    #[inline]
+    #[must_use]
     pub fn get_card_val(&self, id: &Idx) -> Option<&u16> {
         let Idx(i) = *id;
         self.deck.get(i as usize)
     }
     /// reveal all the matching cards
+    #[inline]
     pub fn reveal_matching_cards(&mut self, ids: Vec<Idx>) {
         for e in ids.iter() {
             let count = self.opened_count.entry(*e).or_insert(0);

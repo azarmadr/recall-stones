@@ -80,7 +80,6 @@ fn setup_board(
     });
     // Board assets
     commands.insert_resource(BoardAssets {
-        label: "Default".to_string(),
         board_material: SpriteMaterial {
             color: Color::WHITE,
             ..Default::default()
@@ -89,16 +88,8 @@ fn setup_board(
             color: Color::DARK_GRAY,
             ..Default::default()
         },
-        covered_card_material: SpriteMaterial {
-            color: Color::GRAY,
-            ..Default::default()
-        },
-        counter_font: asset_server.load("fonts/pixeled.ttf"),
+        score_font: asset_server.load("fonts/pixeled.ttf"),
         card_color: BoardAssets::default_colors(),
-        material: SpriteMaterial {
-            texture: asset_server.load("sprites/bomb.png"),
-            color: Color::WHITE,
-        },
         col_map: HashMap::from([
             (
                 Collection::Eng,

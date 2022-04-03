@@ -134,7 +134,7 @@ impl<T> PaperPlugin<T> {
                                 deck.count() * 2 - 1
                             ),
                             TextStyle {
-                                font: board_assets.counter_font.clone(),
+                                font: board_assets.score_font.clone(),
                                 color: Color::WHITE,
                                 font_size: 27.0,
                             },

@@ -1,7 +1,6 @@
 use crate::components::{Close, Idx, Open, Revealed, Score};
 use crate::events::{CardFlipEvent, DeckCompletedEvent};
 use crate::{Board, BoardAssets};
-use bevy::log;
 use bevy::prelude::*;
 use bevy_tweening::{lens::*, *};
 use std::time::Duration;
@@ -112,9 +111,7 @@ pub fn reveal_cards(
 ) {
     for (entity, id) in revealed.iter() {
         let count = board.opened_count(id);
-        commands.entity(entity).remove::<Revealed>();
-        commands
-            .entity(entity)
+        commands.entity(entity).remove::<Revealed>()
             .insert(Name::new("Revealed"))
             .with_children(|parent| {
                 parent.spawn_bundle(Text2dBundle {
@@ -122,7 +119,7 @@ pub fn reveal_cards(
                         count.to_string(),
                         TextStyle {
                             color: board_assets.count_color(count),
-                            font: board_assets.counter_font.clone(),
+                            font: board_assets.score_font.clone(),
                             font_size: 27.,
                         },
                         TextAlignment {
@@ -143,13 +140,13 @@ pub fn open_card(
     mut animate_evr: EventReader<TweenCompleted>,
     parent: Query<&Parent>,
 ) {
-    for trigger_event in flip_card_evr.iter() {
-        if let Some(entity) = board.flip_card(&trigger_event.0) {
+    for CardFlipEvent(id) in flip_card_evr.iter() {
+        if let Some(entity) = board.flip_card(&id) {
             commands
                 .entity(parent.get(*entity).unwrap().0)
                 .insert(Animator::new(rot_seq()));
             commands.entity(*entity).insert(Animator::new(
-                vis_seq(true).with_completed_event(true, trigger_event.0 .0 as u64),
+                vis_seq(true).with_completed_event(true, id.0 as u64),
             ));
         }
     }
@@ -162,7 +159,6 @@ pub fn open_card(
 
 pub fn deck_complete(mut board: ResMut<Board>, mut event: EventWriter<DeckCompletedEvent>) {
     if !board.completed && board.hidden_cards.is_empty() {
-        log::info!("Deck Completed");
         board.completed = true;
         event.send(DeckCompletedEvent);
     }

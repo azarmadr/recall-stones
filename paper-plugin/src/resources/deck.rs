@@ -1,5 +1,4 @@
 use crate::components::Idx;
-//use crate::resources::card::Card;
 use rand::seq::{index::sample, SliceRandom};
 use std::ops::{Deref, DerefMut};
 
@@ -29,19 +28,6 @@ impl Deck {
         }
     }
 
-    pub fn matching_cards(&self, ids: Vec<Idx>) -> Vec<Idx> {
-        let mut map = std::collections::HashMap::new();
-        for Idx(e) in ids {
-            match self.map.get(e as usize) {
-                Some(c) => map.entry(c).or_insert(vec![]).push(Idx(e)),
-                None => (),
-            }
-        }
-        map.into_values()
-            .find(|x| x.len() == self.couplets as usize)
-            .unwrap_or_default()
-    }
-
     #[cfg(feature = "debug")]
     pub fn console_output(&self) -> String {
         let mut buffer = format!("Deck of {} cards from 0 to {}:\n", self.count, self.max);
@@ -59,6 +45,21 @@ impl Deck {
             buffer = format!("{}{:char_width$}", buffer, card);
         }
         format!("{}|\n{}", buffer, line)
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn matching_cards(&self, ids: Vec<Idx>) -> Vec<Idx> {
+        let mut map = std::collections::HashMap::new();
+        for Idx(e) in ids {
+            match self.map.get(e as usize) {
+                Some(c) => map.entry(c).or_insert(vec![]).push(Idx(e)),
+                None => (),
+            }
+        }
+        map.into_values()
+            .find(|x| x.len() == self.couplets as usize)
+            .unwrap_or_default()
     }
 
     // Getter for `max`
