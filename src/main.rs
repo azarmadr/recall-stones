@@ -28,8 +28,8 @@ fn main() {
     // Window setup
     app.insert_resource(WindowDescriptor {
         title: "Recall the Stones!".to_string(),
-        width: 480.,
-        height: 720.,
+        width: 720.,
+        height: 1080.,
         ..Default::default()
     })
     // Log setup

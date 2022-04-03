@@ -3,7 +3,6 @@ use crate::events::{CardFlipEvent, DeckCompletedEvent};
 use crate::{Board, BoardAssets};
 use bevy::log;
 use bevy::prelude::*;
-use bevy::render::view::Visibility;
 use bevy_tweening::{lens::*, *};
 use std::time::Duration;
 
@@ -22,30 +21,61 @@ impl Lens<Transform> for TransformPositionLensByDelta {
 }
 
 const ROT_TIME: Duration = Duration::from_millis(81);
-
-pub fn deck_complete(mut board: ResMut<Board>, mut event: EventWriter<DeckCompletedEvent>) {
-    if !board.completed && board.hidden_cards.is_empty() {
-        log::info!("Deck Completed");
-        board.completed = true;
-        event.send(DeckCompletedEvent);
-    }
+fn rot_seq() -> Sequence<Transform> {
+    let start = 0.;
+    let end = std::f32::consts::PI / 2.;
+    let tween = |start, end| {
+        Tween::new(
+            EaseFunction::QuadraticIn,
+            TweeningType::Once,
+            ROT_TIME,
+            TransformRotateYLens { start, end },
+        )
+    };
+    tween(start, end).then(tween(end, start))
+}
+fn vis_seq(show: bool) -> Tween<Visibility> {
+    Tween::new(
+        EaseFunction::QuadraticIn,
+        TweeningType::Once,
+        2 * ROT_TIME,
+        VisibilityLens(show),
+    )
+}
+fn shake_seq() -> Sequence<Transform> {
+    let tween = |x, i| {
+        Tween::new(
+            EaseFunction::ElasticInOut,
+            TweeningType::Once,
+            ROT_TIME * i / 3,
+            TransformPositionLensByDelta(x),
+        )
+    };
+    Sequence::new((1..4).rev().map(|i| {
+        tween(Vec3::X / 3. * i as f32, i)
+            .then(tween(Vec3::X / 3. * -2. * i as f32, i))
+            .then(tween(Vec3::X / 3. * i as f32, i))
+    }))
 }
 pub fn score(
     mut commands: Commands,
     mut board: ResMut<Board>,
-    children: Query<(Entity, &Idx), With<Open>>,
+    opened: Query<(Entity, &Idx, &Parent), With<Open>>,
+    closed: Query<(Entity, &Parent), With<Close>>,
     mut score: Query<&mut Text, With<Score>>,
 ) {
     let deck_len = board.deck.couplets() as usize;
     let mut text = score.single_mut();
-    match children.iter().count() {
+    match opened.iter().count() {
         x if x == deck_len => {
-            board.reveal_matching_cards(children.iter().map(|x| *x.1).collect());
-            for (entity, id) in children.iter() {
+            board.reveal_matching_cards(opened.iter().map(|x| *x.1).collect());
+            for (entity, id, parent) in opened.iter() {
+                commands.entity(entity).remove::<Open>();
                 if board.is_revealed(id) {
                     commands.entity(entity).insert(Revealed);
                 } else {
                     commands.entity(entity).insert(Close);
+                    commands.entity(parent.0).insert(Animator::new(shake_seq()));
                 }
             }
             board.turns += 1;
@@ -60,73 +90,18 @@ pub fn score(
                 rem_cards * 2 - 1
             );
         }
+        1 => {
+            for (entity, &parent) in closed.iter() {
+                if opened.get(entity).is_err() {
+                    commands.entity(parent.0).insert(Animator::new(rot_seq()));
+                    commands
+                        .entity(entity)
+                        .insert(Animator::new(vis_seq(false)));
+                }
+                commands.entity(entity).remove::<Close>();
+            }
+        }
         _ => (),
-    }
-}
-pub fn close_cards(
-    mut commands: Commands,
-    children: Query<(Entity, &Parent), With<Close>>,
-    open: Query<Entity, With<Open>>,
-) {
-    if let Ok(opened) = open.get_single() {
-        for (entity, &parent) in children.iter() {
-            if entity != opened {
-                let rot_seq = Tween::new(
-                    EaseFunction::QuadraticIn,
-                    TweeningType::Once,
-                    ROT_TIME,
-                    TransformRotateYLens {
-                        start: 0.,
-                        end: std::f32::consts::PI / 2.,
-                    },
-                )
-                .then(Tween::new(
-                    EaseFunction::QuadraticOut,
-                    TweeningType::Once,
-                    ROT_TIME,
-                    TransformRotateYLens {
-                        end: 0.,
-                        start: std::f32::consts::PI / 2.,
-                    },
-                ));
-                let vis_seq = Tween::new(
-                    EaseFunction::QuadraticIn,
-                    TweeningType::Once,
-                    2 * ROT_TIME,
-                    VisibilityLens(false),
-                );
-                commands.entity(parent.0).insert(Animator::new(rot_seq));
-                commands.entity(entity).insert(Animator::new(vis_seq));
-            }
-            commands.entity(entity).remove::<Close>();
-        }
-    } else {
-        for (entity, &parent) in children.iter() {
-            if let Ok(_) = open.get(entity) {
-                commands.entity(entity).remove::<Open>();
-                let seq = Sequence::new((1..4).rev().map(|i| {
-                    Tween::new(
-                        EaseFunction::ElasticInOut,
-                        TweeningType::Once,
-                        ROT_TIME * i / 3,
-                        TransformPositionLensByDelta(Vec3::X / 3. * i as f32),
-                    )
-                    .then(Tween::new(
-                        EaseFunction::ElasticInOut,
-                        TweeningType::Once,
-                        ROT_TIME * i / 3,
-                        TransformPositionLensByDelta(Vec3::X / 3. * -2. * i as f32),
-                    ))
-                    .then(Tween::new(
-                        EaseFunction::ElasticInOut,
-                        TweeningType::Once,
-                        ROT_TIME * i / 3,
-                        TransformPositionLensByDelta(Vec3::X / 3. * i as f32),
-                    ))
-                }));
-                commands.entity(parent.0).insert(Animator::new(seq));
-            }
-        }
     }
 }
 pub fn reveal_cards(
@@ -138,7 +113,6 @@ pub fn reveal_cards(
     for (entity, id) in revealed.iter() {
         let count = board.opened_count(id);
         commands.entity(entity).remove::<Revealed>();
-        commands.entity(entity).remove::<Open>();
         commands
             .entity(entity)
             .insert(Name::new("Revealed"))
@@ -171,41 +145,25 @@ pub fn open_card(
 ) {
     for trigger_event in flip_card_evr.iter() {
         if let Some(entity) = board.flip_card(&trigger_event.0) {
-            let rot_seq = Tween::new(
-                EaseFunction::QuadraticIn,
-                TweeningType::Once,
-                ROT_TIME,
-                TransformRotateYLens {
-                    start: 0.,
-                    end: std::f32::consts::PI / 2.,
-                },
-            )
-            .then(Tween::new(
-                EaseFunction::QuadraticOut,
-                TweeningType::Once,
-                ROT_TIME,
-                TransformRotateYLens {
-                    end: 0.,
-                    start: std::f32::consts::PI / 2.,
-                },
-            ));
-            let vis_seq = Tween::new(
-                EaseFunction::QuadraticIn,
-                TweeningType::Once,
-                2 * ROT_TIME,
-                VisibilityLens(true),
-            )
-            .with_completed_event(true, trigger_event.0 .0 as u64);
-
             commands
                 .entity(parent.get(*entity).unwrap().0)
-                .insert(Animator::new(rot_seq));
-            commands.entity(*entity).insert(Animator::new(vis_seq));
+                .insert(Animator::new(rot_seq()));
+            commands.entity(*entity).insert(Animator::new(
+                vis_seq(true).with_completed_event(true, trigger_event.0 .0 as u64),
+            ));
         }
     }
     for event in animate_evr.iter() {
         if let Some(entity) = board.flip_card(&Idx(event.user_data as u16)) {
             commands.entity(*entity).insert(Open);
         }
+    }
+}
+
+pub fn deck_complete(mut board: ResMut<Board>, mut event: EventWriter<DeckCompletedEvent>) {
+    if !board.completed && board.hidden_cards.is_empty() {
+        log::info!("Deck Completed");
+        board.completed = true;
+        event.send(DeckCompletedEvent);
     }
 }

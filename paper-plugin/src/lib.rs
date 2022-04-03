@@ -38,7 +38,6 @@ impl<T: StateData> Plugin for PaperPlugin<T> {
                 .with_system(systems::input::input_handling)
                 .with_system(systems::spawn::spawn_cards)
                 .with_system(systems::uncover::open_card)
-                .with_system(systems::uncover::close_cards)
                 .with_system(systems::uncover::deck_complete),
         )
         .add_system_set(
