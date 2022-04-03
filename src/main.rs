@@ -27,9 +27,9 @@ fn main() {
     let mut app = App::new();
     // Window setup
     app.insert_resource(WindowDescriptor {
-        title: "Recall the Stones!".to_string(),
-        width: 720.,
-        height: 1080.,
+        title: "Recall Stones! - A Concentration Game".to_string(),
+        width: 480.,
+        height: 720.,
         ..Default::default()
     })
     // Log setup
