@@ -32,9 +32,3 @@ pub enum Collection {
 }
 
 mod coordinates;
-
-/*
-mod open;
-mod revealed;
-mod opening;
-*/

@@ -1,4 +1,5 @@
 use crate::components::{Collection, Collection::*, Idx};
+use crate::Mode::*;
 use crate::{Board, BoardAssets, BoardOptions};
 use bevy::prelude::*;
 use bevy::text::Text2dSize;
@@ -7,16 +8,11 @@ use bevy::text::Text2dSize;
 pub fn spawn_cards(
     mut commands: Commands,
     board: Res<Board>,
-    board_options: Option<Res<BoardOptions>>,
+    board_options: Res<BoardOptions>,
     board_assets: Res<BoardAssets>,
     children: Query<(Entity, &Collection, &Idx)>,
 ) {
-    let size = board.card_size
-        - match board_options {
-            Some(o) => o.clone(),
-            None => BoardOptions::default(),
-        }
-        .card_padding;
+    let size = board.card_size - board_options.card_padding;
     for (entity, col, id) in children.iter() {
         commands.entity(entity).remove::<Collection>();
         if let Some(&val) = board.get_card_val(id) {
@@ -26,9 +22,16 @@ pub fn spawn_cards(
                 _ => board_assets.card_color(val, board.deck.max()),
             };
             let value = match col {
-                Spades | Clubs | Hearts | Diamonds => {
-                    char::from_digit(val as u32, 14).unwrap().to_string()
-                }
+                Spades | Clubs | Hearts | Diamonds => char::from_digit(
+                    match board_options.mode {
+                        SameColor | Zebra => val % (board.deck.max() / 2),
+                        TwoDecks | TwoDecksDuel => val / 4,
+                        _ => val,
+                    } as u32,
+                    14,
+                )
+                .unwrap()
+                .to_string(),
                 _ => val.to_string(),
             };
             commands.entity(entity).insert_bundle(Text2dBundle {

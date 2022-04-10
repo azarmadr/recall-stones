@@ -111,7 +111,9 @@ pub fn reveal_cards(
 ) {
     for (entity, id) in revealed.iter() {
         let count = board.opened_count(id);
-        commands.entity(entity).remove::<Revealed>()
+        commands
+            .entity(entity)
+            .remove::<Revealed>()
             .insert(Name::new("Revealed"))
             .with_children(|parent| {
                 parent.spawn_bundle(Text2dBundle {
