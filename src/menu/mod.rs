@@ -82,9 +82,11 @@ fn apply_options(
 #[derive(Component)]
 struct UI;
 #[autodefault]
-fn setup_ui(mut commands: Commands, materials: Res<MenuMaterials>,
+fn setup_ui(
+    mut commands: Commands,
+    materials: Res<MenuMaterials>,
     board_options: Res<BoardOptions>,
-            ) {
+) {
     let mode = board_options.mode;
     commands
         .spawn_bundle(NodeBundle {
@@ -103,9 +105,14 @@ fn setup_ui(mut commands: Commands, materials: Res<MenuMaterials>,
             parent.spawn_bundle(TextBundle {
                 text: Text {
                     sections: vec![
-                        write_strings("Instructions:",27.,Color::WHITE,&materials),
-                        write_strings(format!("{:?}: {}",mode, mode.desc()),23.,Color::WHITE,&materials),
-                        write_strings(format!("{}",mode.example()),17.,Color::WHITE,&materials),
+                        write_strings("Instructions:", 27., Color::WHITE, &materials),
+                        write_strings(
+                            format!("{:?}: {}", mode, mode.desc()),
+                            23.,
+                            Color::WHITE,
+                            &materials,
+                        ),
+                        write_strings(format!("{}", mode.example()), 17., Color::WHITE, &materials),
                     ],
                     alignment: TextAlignment {
                         vertical: VerticalAlign::Center,
@@ -136,7 +143,7 @@ fn write_strings<S: Into<String>>(
     materials: &Res<MenuMaterials>,
 ) -> TextSection {
     TextSection {
-        value: format!("{}\n",text.into()).into(),
+        value: format!("{}\n", text.into()).into(),
         style: TextStyle {
             font: materials.font.clone(),
             font_size,

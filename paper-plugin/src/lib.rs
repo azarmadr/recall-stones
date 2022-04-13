@@ -5,7 +5,6 @@ use crate::{
     events::{CardFlipEvent, DeckCompletedEvent},
 };
 use bevy::{ecs::schedule::StateData, log, math::Vec3Swizzles, prelude::*};
-use bevy_tweening::{lens::*, *};
 use rand::seq::index::sample;
 use std::time::Duration;
 
@@ -21,6 +20,8 @@ pub mod components;
 pub mod events;
 mod resources;
 mod systems;
+pub mod tween;
+use tween::*;
 
 #[derive(Component)]
 struct InsertDeck;

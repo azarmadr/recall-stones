@@ -12,7 +12,6 @@ debug = ["paper-plugin/debug", "bevy-inspector-egui"]
 [dependencies]
 # bevy = { git = "https://github.com/bevyengine/bevy", rev = "b697e73c3d861c209152ccfb140ae00fbc6e9925", features = ["dynamic"] }
 autodefault = "2.0.0"
-bevy_tweening = "0.3.3"
 paper-plugin = { path = "paper-plugin"}
 # Hierarchy inspector debug
 

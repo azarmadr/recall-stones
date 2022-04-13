@@ -9,13 +9,11 @@ pub struct Coordinates {
     pub x: u16,
     pub y: u16,
 }
-
 impl From<(u16, u16)> for Coordinates {
     fn from((x, y): (u16, u16)) -> Self {
         Self { x, y }
     }
 }
-
 impl Add for Coordinates {
     type Output = Self;
 
@@ -26,7 +24,6 @@ impl Add for Coordinates {
         }
     }
 }
-
 impl Add<(i8, i8)> for Coordinates {
     type Output = Self;
 
@@ -36,7 +33,6 @@ impl Add<(i8, i8)> for Coordinates {
         Self { x, y }
     }
 }
-
 impl Sub for Coordinates {
     type Output = Self;
 
@@ -47,7 +43,6 @@ impl Sub for Coordinates {
         }
     }
 }
-
 impl Display for Coordinates {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "({}, {})", self.x, self.y)
@@ -57,7 +52,6 @@ impl Display for Coordinates {
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Copy, Default, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Component)]
 pub struct Idx(pub u16);
-
 impl Display for Idx {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let Idx(v) = self;

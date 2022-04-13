@@ -1,23 +1,9 @@
 use crate::components::{Close, Idx, Open, Revealed, Score};
 use crate::events::{CardFlipEvent, DeckCompletedEvent};
+use crate::tween::*;
 use crate::{Board, BoardAssets};
 use bevy::prelude::*;
-use bevy_tweening::{lens::*, *};
 use std::time::Duration;
-
-/// boolean to decide whether to show the component. true -> shows.
-struct VisibilityLens(bool);
-impl Lens<Visibility> for VisibilityLens {
-    fn lerp(&mut self, target: &mut Visibility, ratio: f32) {
-        target.is_visible = self.0 ^ (ratio < 0.5);
-    }
-}
-struct TransformPositionLensByDelta(Vec3);
-impl Lens<Transform> for TransformPositionLensByDelta {
-    fn lerp(&mut self, target: &mut Transform, ratio: f32) {
-        target.translation += self.0 * ratio;
-    }
-}
 
 const ROT_TIME: Duration = Duration::from_millis(81);
 fn rot_seq() -> Sequence<Transform> {
@@ -158,10 +144,44 @@ pub fn open_card(
         }
     }
 }
-
-pub fn deck_complete(mut board: ResMut<Board>, mut event: EventWriter<DeckCompletedEvent>) {
+pub fn deck_complete(
+    mut cmd: Commands,
+    mut board: ResMut<Board>,
+    mut event: EventWriter<DeckCompletedEvent>,
+    mut score: Query<(Entity, &mut Text), With<Score>>,
+    mut animate_evr: EventReader<TweenCompleted>,
+) {
     if !board.completed && board.hidden_cards.is_empty() {
         board.completed = true;
-        event.send(DeckCompletedEvent);
+        let (entity, mut text) = score.single_mut();
+        text.sections[0].value = format!("{}\nBoard Completed", text.sections[0].value);
+        cmd.entity(entity)
+            .insert(Animator::new(Tween::new(
+                EaseFunction::ElasticInOut,
+                TweeningType::PingPong,
+                ROT_TIME*9,
+                TransformScaleLens {
+                    start: Vec3::splat(0.91),
+                    end: Vec3::ONE,
+                },
+            )))
+            .insert(Animator::new(
+                Tween::new(
+                    EaseFunction::ElasticInOut,
+                    TweeningType::Once,
+                    ROT_TIME*27,
+                    TextColorLens {
+                        start: Color::WHITE,
+                        end: Color::GREEN,
+                        section: 0,
+                    },
+                )
+                .with_completed_event(true, std::u64::MAX),
+            ));
+    }
+    for anim in animate_evr.iter() {
+        if anim.user_data == std::u64::MAX {
+            event.send(DeckCompletedEvent);
+        }
     }
 }

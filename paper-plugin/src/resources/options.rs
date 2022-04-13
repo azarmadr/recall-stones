@@ -142,9 +142,9 @@ impl BoardOptions {
     }
     pub fn deck_params(&self) -> (u16, u16, u8) {
         let (deck_size, suite_size, ct_jump, mx_jump): (u16, u16, u16, u16) = match self.mode {
-            AnyColor => (3, 4, 5, 2),                  //pairs 28,      uniq 14
-            SameColor | Zebra => (3, 8, 5, 4),         //pairs 28,       uniq 28
-            TwoDecks  => (6, 16, 10, 8), //pairs & uniq 56
+            AnyColor => (3, 4, 5, 2),          //pairs 28,      uniq 14
+            SameColor | Zebra => (3, 8, 5, 4), //pairs 28,       uniq 28
+            TwoDecks => (6, 16, 10, 8),        //pairs & uniq 56
             _ => (3, 4, 5, 2),
         };
         (
