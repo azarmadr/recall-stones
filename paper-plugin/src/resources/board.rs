@@ -15,7 +15,6 @@ pub struct Board {
     pub turns: u32,
     pub completed: bool,
 }
-
 impl Board {
     /// Translates a mouse position to board coordinates
     pub fn mouse_position(&self, window: &Window, position: Vec2) -> Option<Idx> {
@@ -37,13 +36,11 @@ impl Board {
     pub fn flip_card(&self, id: &Idx) -> Option<&Entity> {
         self.hidden_cards.get(id)
     }
-
     #[inline]
     #[must_use]
     pub fn is_revealed(&self, id: &Idx) -> bool {
         !self.hidden_cards.contains_key(id)
     }
-
     #[inline]
     #[must_use]
     pub fn opened_count(&self, id: &Idx) -> u16 {
@@ -65,9 +62,11 @@ impl Board {
             let count = self.opened_count.entry(*e).or_insert(0);
             *count += 1;
         }
-        for id in self.deck.matching_cards(ids).iter() {
-            //probably return to add cloaks
-            self.hidden_cards.remove(id);
+        if self.deck.matching_cards(&ids) {
+            for id in ids.iter() {
+                //probably return to add cloaks
+                self.hidden_cards.remove(id);
+            }
         }
     }
 }

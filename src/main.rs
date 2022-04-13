@@ -1,10 +1,7 @@
-mod buttons;
-
-use crate::buttons::*;
+mod menu;
 use bevy::log::{Level, LogSettings};
 use bevy::prelude::*;
-#[cfg(feature = "debug")]
-use bevy_inspector_egui::RegisterInspectable;
+use menu::*;
 use paper_plugin::{
     events::DeckCompletedEvent, Board, BoardAssets, BoardOptions, BoardPosition, Collection,
     PaperPlugin, SpriteMaterial,
@@ -42,14 +39,15 @@ fn main() {
     #[cfg(feature = "debug")]
     {
         app.add_plugin(bevy_inspector_egui::WorldInspectorPlugin::new());
-        app.register_inspectable::<ButtonAction>();
+        //app.register_inspectable::<ButtonAction>();
+        //app.register_inspectable::<Mode>();
     }
     // Board plugin
     app.add_plugin(PaperPlugin {
         running_state: AppState::InGame,
     })
-    .add_plugin(MenuPlugin(AppState::Menu))
-    .init_resource::<ButtonMaterials>() //to be removed
+    .add_plugin(MenuPlugin)
+    .init_resource::<MenuMaterials>() //to be removed
     .add_state(AppState::Splash)
     .add_startup_system(setup_board)
     // Startup system (cameras)

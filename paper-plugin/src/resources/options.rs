@@ -22,7 +22,7 @@ pub enum BoardPosition {
 }
 
 /// Game Mode
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Mode {
     AnyColor,
     SameColor,
@@ -72,13 +72,13 @@ impl Default for BoardPosition {
 impl Default for BoardOptions {
     fn default() -> Self {
         Self {
-            level: 2,
+            level: 0,
             couplets: 2,
             position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,
             collections: vec![
-                Clubs, Hearts, Spades, Diamonds, //Collection::Tel, Collection::Eng
+                Clubs, Spades, Hearts, Diamonds, //Collection::Tel, Collection::Eng
             ],
             //mode: AnyColor,
             mode: Zebra,
@@ -105,7 +105,7 @@ impl BoardOptions {
     }
     pub fn deck_params(&self) -> (u16, u16, u8) {
         let (deck_size, suite_size, ct_jump, mx_jump): (u16, u16, u16, u16) = match self.mode {
-            AnyColor => (3, 4, 5, 2),                  // pairs 28,      uniq 14
+            AnyColor => (3, 4, 5, 2),                  //pairs 28,      uniq 14
             SameColor | Zebra => (3, 8, 5, 4),         //pairs 28,       uniq 28
             TwoDecks | TwoDecksDuel => (6, 16, 10, 8), //pairs & uniq 56
             _ => (3, 4, 5, 2),
@@ -121,6 +121,12 @@ impl BoardOptions {
     }
     pub fn level_down(&mut self) {
         self.level = self.level.saturating_sub(1);
+    }
+    pub fn to_string(&self) -> String {
+        format!(
+            "Level: {}, Couplets: {}, Mode: {:?}",
+            self.level, self.couplets, self.mode
+        )
     }
 }
 /*

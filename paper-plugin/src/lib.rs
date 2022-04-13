@@ -1,15 +1,13 @@
 pub use crate::components::Collection;
-use crate::components::*;
-use crate::deck::Deck;
-use crate::events::{CardFlipEvent, DeckCompletedEvent};
-use bevy::ecs::schedule::StateData;
-use bevy::log;
-use bevy::math::Vec3Swizzles;
-use bevy::prelude::*;
+use crate::{
+    components::*,
+    deck::Deck,
+    events::{CardFlipEvent, DeckCompletedEvent},
+};
+use bevy::{ecs::schedule::StateData, log, math::Vec3Swizzles, prelude::*};
 use bevy_tweening::{lens::*, *};
 use rand::seq::index::sample;
 use std::time::Duration;
-//use bevy::render::view::Visibility;
 
 use autodefault::autodefault;
 #[cfg(feature = "debug")]
@@ -31,7 +29,6 @@ struct InsertDeck;
 pub struct PaperPlugin<T> {
     pub running_state: T,
 }
-
 impl<T: StateData> Plugin for PaperPlugin<T> {
     fn build(&self, app: &mut App) {
         app.add_system_set(
@@ -82,7 +79,7 @@ pub fn create_board(
         Some(o) => o.clone(),
     };
 
-    let deck = Deck::init(options.deck_params(), options.mode == Mode::TwoDecksDuel);
+    let deck = Deck::init(options.deck_params(), options.mode);
     #[cfg(feature = "debug")]
     log::info!("{}", deck.console_output());
 
@@ -162,7 +159,6 @@ pub fn create_board(
         entity: board_entity,
     })
 }
-
 #[autodefault(except(TransformScaleLens))]
 fn spawn_cards(
     mut commands: Commands,
@@ -187,30 +183,18 @@ fn spawn_cards(
             for (i, &card) in deck.iter().enumerate() {
                 let (x, y) = (i % deck.width() as usize, i / deck.width() as usize);
                 let id = Idx(i as u16);
-                let isnt_zebra = board_options.mode != Mode::Zebra;
-                let isnt_samecolor = board_options.mode != Mode::SameColor;
-                let key = if deck.max() / 2 > card as u16 || isnt_zebra {
-                    card
-                } else {
-                    card as u16 - deck.max() / 2
+                let zebra = match board_options.mode {
+                    Mode::Zebra | Mode::SameColor => true,
+                    _ => false,
                 };
                 let col = col_map
-                    .entry(key)
-                    .or_insert({
-                        let mut ids = sample(&mut rng, sample_size, sample_size)
+                    .entry(card)
+                    .or_insert(
+                        sample(&mut rng, sample_size, sample_size)
                             .iter()
-                            .filter(|&x| isnt_samecolor || x as u16 > deck.max() / 2)
-                            .collect::<Vec<usize>>();
-                        if !isnt_zebra {
-                            if ids[0] % 2 == ids[1] % 2 {
-                                ids.swap(1, 2)
-                            } else if ids[0] % 2 == ids[3] % 2 {
-                                ids.swap(3, 2)
-                            }
-                        }
-                        //ids.sort_by_key(|k| !board_options.col_is_suites() || rand_bool == k % 2);
-                        ids
-                    })
+                            .filter(|&x| !zebra || ((card >= deck.max() / 2) == (x < 2)))
+                            .collect::<Vec<usize>>(),
+                    )
                     .pop()
                     .unwrap()
                     % collections.len();
@@ -254,7 +238,6 @@ fn spawn_cards(
         })
         .remove::<InsertDeck>();
 }
-
 fn cleanup_board(board: Res<Board>, mut commands: Commands) {
     commands.entity(board.entity).despawn_recursive();
     commands.remove_resource::<Board>();

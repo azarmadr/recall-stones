@@ -3,57 +3,76 @@ use rand::seq::{index::sample, SliceRandom};
 use std::iter::repeat;
 use std::ops::{Deref, DerefMut};
 
+use super::Mode;
+
 /// Base tile map
 #[derive(Debug, Clone)]
 pub struct Deck {
     count: u16,
     max: u16,
     couplets: u8,
-    duel: bool,
+    mode: Mode,
     map: Vec<u16>,
 }
-
 impl Deck {
     /// Randomize couplets till max count and initialize them in the Deck
-    pub fn init((count, max, couplets): (u16, u16, u8), duel: bool) -> Self {
-        let cycles = (count as f32 / max as f32).ceil();
+    pub fn init((count, max, couplets): (u16, u16, u8), mode: Mode) -> Self {
+        let sample_max = if mode == Mode::Zebra { max / 2 } else { max } - 1;
+        let cycles = (count as f32 / sample_max as f32).ceil();
         let mut rng = rand::thread_rng();
         let mut map: Vec<u16> = repeat(cycles)
             .flat_map(|_| {
                 sample(
                     &mut rng,
-                    max.into(),
+                    sample_max.into(),
                     (count as f32 / cycles).ceil() as usize,
                 )
             })
-            .flat_map(|x| repeat(x as u16).take(if duel { 1 } else { couplets.into() }))
-            .take(2 * count as usize)
-            .collect();
-        if duel {
-            map = std::iter::repeat(map)
-                .take(couplets.into())
-                .flat_map(|mut x| {
-                    x.shuffle(&mut rng);
-                    x
+            .flat_map(|x| {
+                repeat(x as u16).take(match mode {
+                    Mode::TwoDecksDuel | Mode::Zebra => 1,
+                    _ => couplets.into(),
                 })
-                .collect();
-        } else {
-            map.shuffle(&mut rng);
+            })
+            .take(
+                count as usize
+                    * match mode {
+                        Mode::TwoDecksDuel | Mode::Zebra => 1,
+                        _ => 2,
+                    },
+            )
+            .collect();
+        match mode {
+            Mode::TwoDecksDuel => {
+                map = std::iter::repeat(map)
+                    .take(couplets.into())
+                    .flat_map(|mut x| {
+                        x.shuffle(&mut rng);
+                        x
+                    })
+                    .collect();
+            }
+            Mode::Zebra => {
+                map = map.iter().flat_map(|&x| [x, x + max / 2]).collect();
+                map.shuffle(&mut rng);
+            }
+            _ => {
+                map.shuffle(&mut rng);
+            }
         }
         Self {
             count,
             max,
             couplets,
-            duel,
+            mode,
             map,
         }
     }
-
     #[cfg(feature = "debug")]
     pub fn console_output(&self) -> String {
         let mut buffer = format!(
-            "Deck {{count: {}, max: {}, couplets: {}, duel: {}}}:\n",
-            self.count, self.max, self.couplets, self.duel
+            "Deck {{count: {}, max: {}, couplets: {}, mode: {:?}}}:\n",
+            self.count, self.max, self.couplets, self.mode
         );
         let char_width = self.max.to_string().len() + 1;
         let line: String = (0..=(self.width())).into_iter().map(|_| '-').collect();
@@ -69,52 +88,61 @@ impl Deck {
         }
         format!("{}|\n{}", buffer, line)
     }
-
     #[inline]
     #[must_use]
-    pub fn matching_cards(&self, ids: Vec<Idx>) -> Vec<Idx> {
-        let mut map = std::collections::HashMap::new();
-        for Idx(e) in ids {
-            match self.map.get(e as usize) {
-                Some(c) => map.entry(c).or_insert(vec![]).push(Idx(e)),
-                None => (),
+    pub fn get_val(&self, id: &Idx) -> Option<&u16> {
+        let Idx(i) = *id;
+        self.get(i as usize)
+    }
+    #[inline]
+    #[must_use]
+    pub fn matching_cards(&self, ids: &Vec<Idx>) -> bool {
+        if self.couplets > 2 || self.mode != Mode::Zebra {
+            //let (first, rest) = ids.first().unwrap();
+            let f_card = self.get_val(ids.first().unwrap()).unwrap();
+            ids.iter().all(|x| self.get_val(x).unwrap() == f_card)
+        } else {
+            if let (Some(&l), Some(&r)) = match &ids[..] {
+                &[first, second, ..] => (self.get_val(&first), self.get_val(&second)),
+                _ => unreachable!(),
+            } {
+                if l == r + self.max / 2 || r == l + self.max / 2 {
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
             }
         }
-        map.into_values()
-            .find(|x| x.len() == self.couplets as usize)
-            .unwrap_or_default()
     }
-
     // Getter for `max`
     #[inline]
     #[must_use]
     pub fn max(&self) -> u16 {
         self.max
     }
-
     // Getter for `count`
     #[inline]
     #[must_use]
     pub fn count(&self) -> u16 {
         self.count
     }
-
     // Getter for `open`
     #[inline]
     #[must_use]
     pub fn couplets(&self) -> u8 {
         self.couplets
     }
-
     // Getter for `width`
     // needs additional params
     #[inline]
     #[must_use]
     pub fn width(&self) -> u16 {
-        let len = self.map.len() / if self.duel { self.couplets.into() } else { 1 };
-        (len as f32).sqrt().round() as u16 * if self.duel { self.couplets as u16 } else { 1 }
+        let duel = self.mode == Mode::TwoDecksDuel;
+        let len = self.map.len() / if duel { self.couplets.into() } else { 1 };
+        (len as f32).sqrt().round() as u16 * if duel { self.couplets as u16 } else { 1 }
     }
-
     // Getter for `height`
     // needs additional params
     #[inline]
