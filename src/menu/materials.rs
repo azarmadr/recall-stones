@@ -35,7 +35,6 @@ impl FromWorld for MenuMaterials {
         }
     }
 }
-
 pub fn button_system(
     button_colors: Res<MenuMaterials>,
     mut buttons: Query<(&Interaction, &mut UiColor), (Changed<Interaction>, With<Button>)>,
@@ -48,7 +47,6 @@ pub fn button_system(
         }
     }
 }
-
 /// Button action type
 //#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Copy, Clone, PartialEq, Component)]
@@ -82,7 +80,6 @@ impl ButtonAction {
             });
     }
 }
-
 pub fn action_system(
     mut interaction_query: Query<
         (&Interaction, &ButtonAction),
@@ -124,7 +121,6 @@ pub fn action_system(
         }
     }
 }
-
 pub fn root(materials: &Res<MenuMaterials>) -> NodeBundle {
     NodeBundle {
         style: Style {

@@ -79,11 +79,13 @@ fn apply_options(
         opt.sections[0].value = board_options.to_string();
     }
 }
-
 #[derive(Component)]
 struct UI;
 #[autodefault]
-fn setup_ui(mut commands: Commands, materials: Res<MenuMaterials>) {
+fn setup_ui(mut commands: Commands, materials: Res<MenuMaterials>,
+    board_options: Res<BoardOptions>,
+            ) {
+    let mode = board_options.mode;
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -102,8 +104,8 @@ fn setup_ui(mut commands: Commands, materials: Res<MenuMaterials>) {
                 text: Text {
                     sections: vec![
                         write_strings("Instructions:",27.,Color::WHITE,&materials),
-                        write_strings("1. Match a card with its couplets",23.,Color::WHITE,&materials),
-                        write_strings("if couplet is two, then two cards have same value which can be matched",17.,Color::WHITE,&materials),
+                        write_strings(format!("{:?}: {}",mode, mode.desc()),23.,Color::WHITE,&materials),
+                        write_strings(format!("{}",mode.example()),17.,Color::WHITE,&materials),
                     ],
                     alignment: TextAlignment {
                         vertical: VerticalAlign::Center,
@@ -127,14 +129,14 @@ fn setup_ui(mut commands: Commands, materials: Res<MenuMaterials>) {
             let _ = &ButtonAction::Menu.create_button(parent, &materials);
         });
 }
-fn write_strings(
-    text: &str,
+fn write_strings<S: Into<String>>(
+    text: S,
     font_size: f32,
     color: Color,
     materials: &Res<MenuMaterials>,
 ) -> TextSection {
     TextSection {
-        value: (text.to_owned() + "\n").to_string(),
+        value: format!("{}\n",text.into()).into(),
         style: TextStyle {
             font: materials.font.clone(),
             font_size,
@@ -142,7 +144,6 @@ fn write_strings(
         },
     }
 }
-
 pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {

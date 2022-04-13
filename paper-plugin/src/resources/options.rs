@@ -24,19 +24,56 @@ pub enum BoardPosition {
 /// Game Mode
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Mode {
+    /// Pairs need only to be of same rank -- 2 == 2
     AnyColor,
+    /// Pairs need to be of same rank and color -- 2red == 2red
     SameColor,
+    /// Pairs need to be of same rank but color should be of opposite -- 2red == 2black
     Zebra,
+    /// Pairs need to be of same rank and suite -- 2redHearts == 2redHearts
     TwoDecks,
+    /// Pairs need to be of same rank and suite, cards have different backs for easy differentiation
+    CheckeredDeck,
+    /// Only once flip each turn
     OneFlip,
-    TwoDecksDuel,
-    DoubleDeckerCheckerboard,
+    /// Each turn can only flip from your half side of the deck
+    /// After each turn, roles are changed (first becomes second)
+    HalfPlate,
+    /// Deck arrangement - Circles or Trianles or any other
     Fancy,
+    /// Deck arrangement - Duh Duh!
     Spaghetti,
+    /// With numbers
     Pexeso,
 }
 use Mode::*;
-
+impl Mode {
+    pub fn desc(&self) -> &str {
+        match self {
+            AnyColor => "Pairs need only to be of same rank",
+            SameColor => "Pairs need to be of same rank and color",
+            Zebra => "Pairs need to be of same rank but color should be of opposite",
+            TwoDecks => "Pairs need to be of same rank and suite",
+            CheckeredDeck => "Pairs need to be of same rank and suite,\ncards have different backs for easy differentiation",
+            OneFlip => "Only once flip each turn",
+            HalfPlate => "Each turn can only flip from your half side of the deck.\nAfter each turn, roles are changed",
+            Fancy => "Deck arrangement - Circles or Trianles or any other",
+            Spaghetti => "Deck arrangement - Duh Doy!",
+            Pexeso => "With numbers",
+        }
+    }
+    pub fn example(&self) -> &str {
+        match self {
+            AnyColor => "2 == 2",
+            SameColor => "2red == 2red",
+            Zebra => "2red == 2black",
+            TwoDecks => "2redHearts == 2redHearts",
+            CheckeredDeck => "2redHearts == 2redHearts",
+            HalfPlate => "Turn 1: first player starts; Turn 2: second player starts",
+            _ => "",
+        }
+    }
+}
 /// Board generation options. Must be used as a resource
 // We use serde to allow saving option presets and loading them at runtime
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,7 +144,7 @@ impl BoardOptions {
         let (deck_size, suite_size, ct_jump, mx_jump): (u16, u16, u16, u16) = match self.mode {
             AnyColor => (3, 4, 5, 2),                  //pairs 28,      uniq 14
             SameColor | Zebra => (3, 8, 5, 4),         //pairs 28,       uniq 28
-            TwoDecks | TwoDecksDuel => (6, 16, 10, 8), //pairs & uniq 56
+            TwoDecks  => (6, 16, 10, 8), //pairs & uniq 56
             _ => (3, 4, 5, 2),
         };
         (
@@ -129,12 +166,3 @@ impl BoardOptions {
         )
     }
 }
-/*
-fn change(x: u16, dir: bool, jump: u16, ul: u16, ll: u16) -> u16 {
-    if dir {
-        min(x + jump, ul)
-    } else {
-        max(x - jump, ll)
-    }
-}
-*/

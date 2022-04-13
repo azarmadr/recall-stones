@@ -30,20 +30,20 @@ impl Deck {
             })
             .flat_map(|x| {
                 repeat(x as u16).take(match mode {
-                    Mode::TwoDecksDuel | Mode::Zebra => 1,
+                    Mode::HalfPlate | Mode::Zebra => 1,
                     _ => couplets.into(),
                 })
             })
             .take(
                 count as usize
                     * match mode {
-                        Mode::TwoDecksDuel | Mode::Zebra => 1,
+                        Mode::HalfPlate | Mode::Zebra => 1,
                         _ => 2,
                     },
             )
             .collect();
         match mode {
-            Mode::TwoDecksDuel => {
+            Mode::HalfPlate => {
                 map = std::iter::repeat(map)
                     .take(couplets.into())
                     .flat_map(|mut x| {
@@ -139,7 +139,7 @@ impl Deck {
     #[inline]
     #[must_use]
     pub fn width(&self) -> u16 {
-        let duel = self.mode == Mode::TwoDecksDuel;
+        let duel = self.mode == Mode::HalfPlate;
         let len = self.map.len() / if duel { self.couplets.into() } else { 1 };
         (len as f32).sqrt().round() as u16 * if duel { self.couplets as u16 } else { 1 }
     }
@@ -152,7 +152,6 @@ impl Deck {
         (len as f32 / self.width() as f32).ceil() as u16
     }
 }
-
 impl Deref for Deck {
     type Target = Vec<u16>;
 
@@ -160,7 +159,6 @@ impl Deref for Deck {
         &self.map
     }
 }
-
 impl DerefMut for Deck {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.map

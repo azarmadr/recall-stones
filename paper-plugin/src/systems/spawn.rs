@@ -25,7 +25,7 @@ pub fn spawn_cards(
                 Spades | Clubs | Hearts | Diamonds => char::from_digit(
                     match board_options.mode {
                         SameColor | Zebra => val % (board.deck.max() / 2),
-                        TwoDecks | TwoDecksDuel => val / 4,
+                        TwoDecks | CheckeredDeck => val % (board.deck.max()/4),
                         _ => val,
                     } as u32,
                     14,
