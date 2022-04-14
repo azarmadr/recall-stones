@@ -15,6 +15,7 @@ serde = "1.0"
 rand = "0.8"
 autodefault = "2.0.0"
 bevy_tweening = "0.3"
+bevy_ecs_tilemap = "0.5"
 
 # Console Debug
 [dependencies.colored]

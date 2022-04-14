@@ -2,7 +2,6 @@ use crate::components::{Collection, Collection::*, Idx};
 use crate::Mode::*;
 use crate::{Board, BoardAssets, BoardOptions};
 use bevy::prelude::*;
-use bevy::text::Text2dSize;
 
 pub fn spawn_cards(
     mut commands: Commands,
@@ -33,7 +32,8 @@ pub fn spawn_cards(
                 .to_string(),
                 _ => val.to_string(),
             };
-            commands.entity(entity).insert_bundle(Text2dBundle {
+            commands.entity(entity).insert_bundle(TextBundle {
+                node: Node {size:Vec2::splat(size)},
                 text: Text {
                     sections: vec![TextSection {
                         value,
@@ -46,12 +46,6 @@ pub fn spawn_cards(
                     alignment: TextAlignment {
                         vertical: VerticalAlign::Center,
                         horizontal: HorizontalAlign::Center,
-                    },
-                },
-                text_2d_size: Text2dSize {
-                    size: Size {
-                        width: size,
-                        height: size,
                     },
                 },
                 visibility: Visibility { is_visible: false },

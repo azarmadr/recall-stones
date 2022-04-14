@@ -5,7 +5,6 @@ pub struct Bounds2 {
     pub position: Vec2,
     pub size: Vec2,
 }
-
 impl Bounds2 {
     #[inline]
     #[must_use]

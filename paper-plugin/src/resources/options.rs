@@ -11,7 +11,6 @@ pub enum CardSize {
     /// Window adaptative card size
     Adaptive { min: f32, max: f32 },
 }
-
 /// Board position customization options
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BoardPosition {
@@ -20,7 +19,6 @@ pub enum BoardPosition {
     /// Custom position
     Custom(Vec3),
 }
-
 /// Game Mode
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Mode {
@@ -78,7 +76,7 @@ impl Mode {
 // We use serde to allow saving option presets and loading them at runtime
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BoardOptions {
-    /// Baard world position
+    /// Board world position
     pub position: BoardPosition,
     /// Card world size
     pub card_size: CardSize,
@@ -103,6 +101,7 @@ impl Default for BoardPosition {
     fn default() -> Self {
         Self::Centered {
             offset: Default::default(),
+            //offset: Vec3::new(0., 25., 0.),
         }
     }
 }

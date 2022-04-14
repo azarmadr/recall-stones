@@ -5,7 +5,6 @@ use bevy::{
 mod menu;
 use menu::*;
 use paper_plugin::{ tween::*,* };
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
@@ -41,9 +40,7 @@ fn main() {
         //app.register_inspectable::<Mode>();
     }
     // Board plugin
-    app.add_plugin(PaperPlugin {
-        running_state: AppState::InGame,
-    })
+    app.add_plugin(PaperPlugin(AppState::InGame))
     .add_plugin(MenuPlugin)
     .init_resource::<MenuMaterials>() //to be removed
     .add_state(AppState::Splash)
@@ -59,60 +56,10 @@ fn main() {
 fn startup(
     mut commands: Commands,
     mut state: ResMut<State<AppState>>,
-    asset_server: Res<AssetServer>,
 ) {
     // Camera
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
-    commands.insert_resource(BoardOptions {
-        card_padding: 2.,
-        position: BoardPosition::Centered {
-            offset: Vec3::new(0., 25., 0.),
-        },
-        ..Default::default()
-    });
-    commands.insert_resource(BoardAssets {
-        board_material: SpriteMaterial {
-            color: Color::WHITE,
-            ..Default::default()
-        },
-        card_material: SpriteMaterial {
-            color: Color::DARK_GRAY,
-            ..Default::default()
-        },
-        score_font: asset_server.load("fonts/pixeled.ttf"),
-        card_color: BoardAssets::default_colors(),
-        col_map: HashMap::from([
-            (
-                Collection::Eng,
-                asset_server.load_untyped("fonts/pixeled.ttf"),
-            ),
-            /*(
-                Collection::Dice,
-                asset_server.load_untyped("fonts/Dicier-Block-Heavy.ttf"),
-            ),*/
-            (
-                Collection::Clubs,
-                asset_server.load_untyped("fonts/clubs.ttf"),
-            ),
-            (
-                Collection::Hearts,
-                asset_server.load_untyped("fonts/hearts.ttf"),
-            ),
-            (
-                Collection::Spades,
-                asset_server.load_untyped("fonts/spades.ttf"),
-            ),
-            (
-                Collection::Diamonds,
-                asset_server.load_untyped("fonts/diamonds.ttf"),
-            ),
-            (
-                Collection::Tel,
-                asset_server.load_untyped("fonts/RaviPrakash.ttf"),
-            ),
-        ]),
-    });
     state.set(AppState::InGame).unwrap();
 }
 /// Display Menu for 3 seconds before applying the set options
