@@ -4,8 +4,8 @@ use bevy::prelude::*;
 
 mod materials;
 pub use materials::*;
-use paper_plugin::BoardOptions;
-fn despawn_menu<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
+use paper_plugin::{BoardOptions, ScoreBoard};
+fn despawn<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
@@ -124,16 +124,39 @@ fn setup_ui(
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
-                size: Size::new(Val::Percent(100.), Val::Px(50.)),
+                size: Size::new(Val::Percent(100.), Val::Px(100.)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
+                border: Rect::all(Val::Px(8.0)),
             },
-            color: Color::WHITE.into(),
+            color: materials.border,
         })
-        .insert(Name::new("UI"))
         .insert(UI)
-        .with_children(|parent| {
-            let _ = &ButtonAction::Menu.create_button(parent, &materials);
+        .insert(Name::new("UI"))
+        .with_children(|p| {
+            p.spawn_bundle(menu_td(&materials)).with_children(|parent| {
+                parent
+                    .spawn_bundle(TextBundle {
+                        style: Style {
+                            align_self: AlignSelf::Baseline,
+                            size: Size::new(Val::Auto, Val::Percent(100.0)),
+                        },
+                        text: Text {
+                            sections: vec![
+                                write_strings("", 27., Color::WHITE, &materials),
+                                write_strings("", 27., Color::WHITE, &materials),
+                                write_strings("", 27., Color::WHITE, &materials),
+                            ],
+                            alignment: TextAlignment {
+                                vertical: VerticalAlign::Center,
+                                horizontal: HorizontalAlign::Center,
+                            },
+                        },
+                    })
+                    .insert(Name::new("ScoreBoard"))
+                    .insert(ScoreBoard);
+                let _ = &ButtonAction::Menu.create_button(parent, &materials);
+            });
         });
 }
 fn write_strings<S: Into<String>>(
@@ -154,20 +177,19 @@ fn write_strings<S: Into<String>>(
 pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
+        use super::AppState::*;
         app.init_resource::<MenuMaterials>()
-            .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(setup_ui))
+            .add_system_set(SystemSet::on_enter(InGame).with_system(setup_ui))
+            .add_system_set(SystemSet::on_resume(InGame).with_system(setup_ui))
+            .add_system_set(SystemSet::on_exit(InGame).with_system(despawn::<UI>))
             .add_system_set(
-                SystemSet::on_enter(AppState::Menu)
+                SystemSet::on_enter(Menu)
                     .with_system(setup_menu)
-                    .with_system(despawn_menu::<UI>),
+                    .with_system(despawn::<UI>),
             )
-            .add_system_set(SystemSet::on_update(AppState::Menu).with_system(apply_options))
+            .add_system_set(SystemSet::on_update(Menu).with_system(apply_options))
             .add_system(button_system)
             .add_system(action_system)
-            .add_system_set(
-                SystemSet::on_exit(AppState::Menu)
-                    .with_system(despawn_menu::<MenuUI>)
-                    .with_system(setup_ui),
-            );
+            .add_system_set(SystemSet::on_exit(Menu).with_system(despawn::<MenuUI>));
     }
 }

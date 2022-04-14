@@ -4,11 +4,7 @@ use bevy::{
 };
 mod menu;
 use menu::*;
-use paper_plugin::{
-    events::DeckCompletedEvent, Board, BoardAssets, BoardOptions, BoardPosition, Collection,
-    PaperPlugin, SpriteMaterial,
-    tween::*,
-};
+use paper_plugin::{ tween::*,* };
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -137,14 +133,11 @@ fn restart_game_on_timer(
         if timer.0.percent() < 0.027 {
             for (entity, &button) in buttons.iter() {
                 if button == ButtonAction::Apply {
-                    commands.entity(entity).insert(Animator::<UiColor>::new(Tween::new(
+                    commands.entity(entity).insert(Animator::new(Tween::new(
                         EaseFunction::QuadraticIn,
                         TweeningType::Once,
                         std::time::Duration::from_secs(2),
-                        ColorLens {
-                            start: Color::RED,
-                            end: Color::GREEN,
-                        },
+                        ColorLens::<UiColor>::new(Color::RED,Color::GREEN),
                     )));
                 }
             }

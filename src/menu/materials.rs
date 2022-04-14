@@ -15,6 +15,7 @@ pub struct MenuMaterials {
     pub hovered: UiColor,
     pub pressed: UiColor,
     pub font: Handle<Font>,
+    pub button_border: UiColor,
     pub button_text: UiColor,
 }
 impl FromWorld for MenuMaterials {
@@ -26,6 +27,7 @@ impl FromWorld for MenuMaterials {
             root: Color::rgba(0., 0., 0., 0.27).into(),
             menu: Color::rgb(0.15, 0.15, 0.15).into(),
             border: Color::rgb(0.65, 0.65, 0.65).into(),
+            button_border: Color::rgb(0.81, 0.65, 0.65).into(),
             button: Color::rgb(0.15, 0.15, 0.15).into(),
             hovered: Color::rgb(0.25, 0.25, 0.25).into(),
             pressed: Color::rgb(0.35, 0.75, 0.35).into(),
@@ -72,12 +74,14 @@ impl ButtonAction {
     #[autodefault]
     pub fn create_button(&self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
         parent
+            .spawn_bundle(button_border(materials))
+            .with_children(|p|{p
             .spawn_bundle(button(materials))
             .insert(*self)
-            .insert(Name::new("Button"))
+            .insert(Name::new(format!("Button({:?})",self)))
             .with_children(|p| {
                 p.spawn_bundle(button_text(materials, &self.name()));
-            });
+            });});
     }
 }
 pub fn action_system(
@@ -131,6 +135,17 @@ pub fn root(materials: &Res<MenuMaterials>) -> NodeBundle {
             ..Default::default()
         },
         color: materials.root.clone(),
+        ..Default::default()
+    }
+}
+pub fn button_border(materials: &Res<MenuMaterials>) -> NodeBundle {
+    NodeBundle {
+        style: Style {
+            size: Size::new(Val::Percent(100.), Val::Px(50.)),
+            border: Rect::all(Val::Px(3.0)),
+            ..Default::default()
+        },
+        color: materials.button_border.clone(),
         ..Default::default()
     }
 }

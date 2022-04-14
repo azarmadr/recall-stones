@@ -1,9 +1,5 @@
-pub use crate::components::Collection;
-use crate::{
-    components::*,
-    deck::Deck,
-    events::{CardFlipEvent, DeckCompletedEvent},
-};
+pub use {bounds::*, resources::*, events::*, components::{ScoreBoard,Collection}};
+use { components::*, deck::Deck, tween::*, };
 use bevy::{ecs::schedule::StateData, log, math::Vec3Swizzles, prelude::*};
 use rand::seq::index::sample;
 use std::time::Duration;
@@ -11,17 +7,14 @@ use std::time::Duration;
 use autodefault::autodefault;
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::RegisterInspectable;
-pub use bounds::*;
-pub use resources::*;
 use std::collections::HashMap;
 
 mod bounds;
 pub mod components;
-pub mod events;
+mod events;
 mod resources;
 mod systems;
 pub mod tween;
-use tween::*;
 
 #[derive(Component)]
 struct InsertDeck;
@@ -124,24 +117,6 @@ pub fn create_board(
                     transform: Transform::from_xyz(board_size.x / 2., board_size.y / 2., 0.),
                 })
                 .insert(Name::new("Background"));
-            parent
-                .spawn_bundle(Text2dBundle {
-                    text: Text::with_section(
-                        format!(
-                            "Luck: {}\nPerfect Memory: {}",
-                            deck.count(),
-                            deck.count() * 2 - 1
-                        ),
-                        TextStyle {
-                            font: board_assets.score_font.clone(),
-                            color: Color::WHITE,
-                            font_size: 27.0,
-                        },
-                        Default::default(),
-                    ),
-                })
-                .insert(Name::new("Score"))
-                .insert(Score);
         })
         .insert(InsertDeck)
         .id();

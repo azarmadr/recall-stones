@@ -1,5 +1,5 @@
-use crate::components::{Close, Idx, Open, Revealed, Score};
-use crate::events::{CardFlipEvent, DeckCompletedEvent};
+use crate::components::*;
+use crate::events::*;
 use crate::tween::*;
 use crate::{Board, BoardAssets};
 use bevy::prelude::*;
@@ -47,7 +47,7 @@ pub fn score(
     mut board: ResMut<Board>,
     opened: Query<(Entity, &Idx, &Parent), With<Open>>,
     closed: Query<(Entity, &Parent), With<Close>>,
-    mut score: Query<&mut Text, With<Score>>,
+    mut score: Query<&mut Text, With<ScoreBoard>>,
 ) {
     let deck_len = board.deck.couplets() as usize;
     let mut text = score.single_mut();
@@ -68,12 +68,9 @@ pub fn score(
                 0 => board.deck.count(),
                 _ => board.hidden_cards.len() as u16 / 2,
             };
-            text.sections[0].value = format!(
-                "turns: {}\nLuck: {}\nPerfect Memory: {}",
-                board.turns,
-                rem_cards,
-                rem_cards * 2 - 1
-            );
+            text.sections[0].value = format!("turns: {}      ",board.turns);
+            text.sections[1].value = format!( "Luck: {}      ", rem_cards);
+            text.sections[2].value = format!( "Perfect Memory: {}      ", rem_cards * 2 - 1);
         }
         1 => {
             for (entity, &parent) in closed.iter() {
@@ -148,18 +145,19 @@ pub fn deck_complete(
     mut cmd: Commands,
     mut board: ResMut<Board>,
     mut event: EventWriter<DeckCompletedEvent>,
-    mut score: Query<(Entity, &mut Text), With<Score>>,
+    mut score: Query<(Entity, &mut Text), With<ScoreBoard>>,
     mut animate_evr: EventReader<TweenCompleted>,
 ) {
     if !board.completed && board.hidden_cards.is_empty() {
         board.completed = true;
         let (entity, mut text) = score.single_mut();
-        text.sections[0].value = format!("{}\nBoard Completed", text.sections[0].value);
+        text.sections[0].value = format!("Board Completed\n");
+        text.sections[1].value = format!("{}{}", text.sections[0].value,text.sections[1].value);
         cmd.entity(entity)
             .insert(Animator::new(Tween::new(
                 EaseFunction::ElasticInOut,
                 TweeningType::PingPong,
-                ROT_TIME*9,
+                ROT_TIME * 9,
                 TransformScaleLens {
                     start: Vec3::splat(0.91),
                     end: Vec3::ONE,
@@ -169,7 +167,7 @@ pub fn deck_complete(
                 Tween::new(
                     EaseFunction::ElasticInOut,
                     TweeningType::Once,
-                    ROT_TIME*27,
+                    ROT_TIME * 27,
                     TextColorLens {
                         start: Color::WHITE,
                         end: Color::GREEN,
