@@ -1,4 +1,4 @@
-use crate::components::{Collection, Collection::*};
+use super::{Collection, Collection::*};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cmp::*;
@@ -9,7 +9,20 @@ pub enum CardSize {
     /// Fixed card size
     Fixed(f32),
     /// Window adaptative card size
-    Adaptive { min: f32, max: f32 },
+    Adaptive {
+        min: f32,
+        max: f32,
+        window: (f32, f32),
+    },
+}
+impl Default for CardSize {
+    fn default() -> Self {
+        Self::Adaptive {
+            min: 10.0,
+            max: 50.0,
+            window: (720., 480.),
+        }
+    }
 }
 /// Board position customization options
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,14 +101,7 @@ pub struct BoardOptions {
     pub mode: Mode,
     pub level: u8,
     pub couplets: u8,
-}
-impl Default for CardSize {
-    fn default() -> Self {
-        Self::Adaptive {
-            min: 10.0,
-            max: 50.0,
-        }
-    }
+    pub players: u8,
 }
 impl Default for BoardPosition {
     fn default() -> Self {
@@ -105,10 +111,10 @@ impl Default for BoardPosition {
         }
     }
 }
-impl Default for BoardOptions {
+impl BoardOptions {
     fn default() -> Self {
         Self {
-            level: 0,
+            level: 3,
             couplets: 2,
             position: Default::default(),
             card_size: Default::default(),
@@ -118,19 +124,26 @@ impl Default for BoardOptions {
             ],
             //mode: AnyColor,
             mode: Zebra,
+            players: 1,
         }
     }
-}
-impl BoardOptions {
     /// Computes a card size that matches the window according to the card map size
-    pub fn adaptative_card_size(&self, window: (f32, f32), (width, height): (u16, u16)) -> f32 {
+    pub fn card_size(&self, width: u16, height: u16) -> f32 {
         match self.card_size {
             CardSize::Fixed(v) => v,
-            CardSize::Adaptive { min, max } => {
+            CardSize::Adaptive { min, max, window } => {
                 let max_width = window.0 / width as f32;
                 let max_heigth = window.1 / height as f32;
                 max_width.min(max_heigth).clamp(min, max)
             }
+        }
+    }
+    pub fn board_position(&self, board_size: Vec2) -> Vec3 {
+        match self.position {
+            BoardPosition::Centered { offset } => {
+                Vec3::new(-(board_size.x / 2.), -(board_size.y / 2.), 0.) + offset
+            }
+            BoardPosition::Custom(p) => p,
         }
     }
     pub fn col_is_suites(&self) -> bool {
@@ -163,5 +176,21 @@ impl BoardOptions {
             "Level: {}, Couplets: {}, Mode: {:?}",
             self.level, self.couplets, self.mode
         )
+    }
+}
+impl FromWorld for BoardOptions {
+    fn from_world(world: &mut World) -> Self {
+        let world = world.cell();
+        //let asset_server = world.get_resource_mut::<AssetServer>().unwrap();
+        let windows = world.get_resource::<Windows>().unwrap();
+        let window = windows.get_primary().unwrap();
+        BoardOptions {
+            card_size: CardSize::Adaptive {
+                min: 10.0,
+                max: 50.0,
+                window: (window.width(), window.height()),
+            },
+            ..BoardOptions::default()
+        }
     }
 }

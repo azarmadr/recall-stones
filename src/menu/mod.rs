@@ -1,6 +1,7 @@
 use super::AppState;
 use autodefault::autodefault;
 use bevy::prelude::*;
+use paper_plugin::Mode::*;
 
 mod materials;
 pub use materials::*;
@@ -12,6 +13,8 @@ fn despawn<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) 
 }
 
 #[derive(Component)]
+struct SwichBoard<T>(Vec<Vec<T>>);
+#[derive(Component)]
 struct MenuUI;
 #[derive(Component)]
 struct MenuBoardOptions;
@@ -19,15 +22,13 @@ struct MenuBoardOptions;
 fn setup_menu(mut commands: Commands, materials: Res<MenuMaterials>) {
     // Make list of buttons
     let buttons: Vec<Vec<ButtonAction>> = vec![
-        vec![ButtonAction::LevelUp, ButtonAction::LevelDown],
-        vec![ButtonAction::CoupletUp, ButtonAction::CoupletDown],
-        vec![
-            ButtonAction::Mode(Mode::Zebra),
-            ButtonAction::Mode(Mode::SameColor),
-            ButtonAction::Mode(Mode::AnyColor),
-        ],
+    vec![ButtonAction::LevelUp, ButtonAction::LevelDown],
+        //vec![ButtonAction::CoupletUp, ButtonAction::CoupletDown],
+        [Zebra,SameColor,AnyColor].iter().map(|x| ButtonAction::Mode(*x)).collect(),
         vec![ButtonAction::Apply, ButtonAction::Save],
     ];
+    /*
+    */
     commands
         .spawn_bundle(root(&materials))
         .insert(MenuUI)
@@ -44,7 +45,7 @@ fn setup_menu(mut commands: Commands, materials: Res<MenuMaterials>) {
                                     .spawn_bundle(menu_lr(&materials))
                                     .with_children(|parent| {
                                         for button in lr {
-                                            button.create_button(parent, &materials)
+                                            button.spawn_button(parent, &materials)
                                         }
                                     });
                             }
@@ -65,6 +66,7 @@ fn setup_menu(mut commands: Commands, materials: Res<MenuMaterials>) {
                 size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
             }
                                 })
+                                .insert(Name::new("Menu Note"))
                                 .insert(MenuBoardOptions);
                         });
                 });
@@ -146,6 +148,7 @@ fn setup_ui(
                                 write_strings("", 27., Color::WHITE, &materials),
                                 write_strings("", 27., Color::WHITE, &materials),
                                 write_strings("", 27., Color::WHITE, &materials),
+                                write_strings("", 27., Color::WHITE, &materials),
                             ],
                             alignment: TextAlignment {
                                 vertical: VerticalAlign::Center,
@@ -155,11 +158,11 @@ fn setup_ui(
                     })
                     .insert(Name::new("ScoreBoard"))
                     .insert(ScoreBoard);
-                let _ = &ButtonAction::Menu.create_button(parent, &materials);
+                let _ = &ButtonAction::Menu.spawn_button(parent, &materials);
             });
         });
 }
-fn write_strings<S: Into<String>>(
+pub fn write_strings<S: Into<String>>(
     text: S,
     font_size: f32,
     color: Color,
@@ -188,8 +191,8 @@ impl Plugin for MenuPlugin {
                     .with_system(despawn::<UI>),
             )
             .add_system_set(SystemSet::on_update(Menu).with_system(apply_options))
-            .add_system(button_system)
-            .add_system(action_system)
+            .add_system(asset_button_server::<BoardOptions>)
+            .add_system(asset_button_server::<State<AppState>>)
             .add_system_set(SystemSet::on_exit(Menu).with_system(despawn::<MenuUI>));
     }
 }

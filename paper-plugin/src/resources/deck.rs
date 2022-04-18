@@ -17,8 +17,14 @@ pub struct Deck {
 impl Deck {
     /// Randomize couplets till max count and initialize them in the Deck
     pub fn init((count, max, couplets): (u16, u16, u8), mode: Mode) -> Self {
-        let sample_max = if mode == Mode::Zebra { max / 2 } else { max } - 1;
+        let sample_max = if mode == Mode::Zebra { max / 2 } else { max };
         let cycles = (count as f32 / sample_max as f32).ceil();
+        println!(
+            "sample_max:{};cycles:{},count/cycles:{}",
+            sample_max,
+            cycles,
+            (count as f32 / cycles).ceil() as usize
+        );
         let mut rng = rand::thread_rng();
         let mut map: Vec<u16> = repeat(cycles)
             .flat_map(|_| {

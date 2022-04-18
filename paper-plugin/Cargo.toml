@@ -14,8 +14,8 @@ debug = ["colored", "bevy-inspector-egui"]
 serde = "1.0"
 rand = "0.8"
 autodefault = "2.0.0"
-bevy_tweening = "0.3"
-bevy_ecs_tilemap = "0.5"
+bevy_tweening = "0.4"
+#mat = {path = "mat"}
 
 # Console Debug
 [dependencies.colored]
@@ -24,14 +24,25 @@ optional = true
 
 # Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]
-version = "0.8"
+version = "0.10"
 optional = true
 
 # Engine
 [dependencies.bevy]
-version = "0.6"
+version = "0.7.*"
 default-features = false
-features = ["render"]
+features = [
+  #"render",
+  ## "render" actually just includes:
+  ## (feel free to use just a subset of these, instead of "render")
+  "bevy_render",        # Rendering framework core
+  #"bevy_core_pipeline", # Higher-level rendering abstractions
+  "bevy_sprite",        # 2D (sprites) rendering
+  #"bevy_pbr",           # 3D (physically-based) rendering
+  #"bevy_gltf",          # GLTF 3D assets format support
+  "bevy_text",          # Text/font rendering
+  "bevy_ui",            # UI toolkit
+]
 
 # Dependencies for WASM only
 [target.'cfg(target_arch = "wasm32")'.dependencies.getrandom]

@@ -3,45 +3,10 @@ use crate::events::*;
 use crate::tween::*;
 use crate::{Board, BoardAssets};
 use bevy::prelude::*;
+use rand::seq::IteratorRandom;
 use std::time::Duration;
 
 const ROT_TIME: Duration = Duration::from_millis(81);
-fn rot_seq() -> Sequence<Transform> {
-    let start = 0.;
-    let end = std::f32::consts::PI / 2.;
-    let tween = |start, end| {
-        Tween::new(
-            EaseFunction::QuadraticIn,
-            TweeningType::Once,
-            ROT_TIME,
-            TransformRotateYLens { start, end },
-        )
-    };
-    tween(start, end).then(tween(end, start))
-}
-fn vis_seq(show: bool) -> Tween<Visibility> {
-    Tween::new(
-        EaseFunction::QuadraticIn,
-        TweeningType::Once,
-        2 * ROT_TIME,
-        VisibilityLens(show),
-    )
-}
-fn shake_seq() -> Sequence<Transform> {
-    let tween = |x, i| {
-        Tween::new(
-            EaseFunction::ElasticInOut,
-            TweeningType::Once,
-            ROT_TIME * i / 3,
-            TransformPositionLensByDelta(x),
-        )
-    };
-    Sequence::new((1..4).rev().map(|i| {
-        tween(Vec3::X / 3. * i as f32, i)
-            .then(tween(Vec3::X / 3. * -2. * i as f32, i))
-            .then(tween(Vec3::X / 3. * i as f32, i))
-    }))
-}
 pub fn score(
     mut commands: Commands,
     mut board: ResMut<Board>,
@@ -60,25 +25,25 @@ pub fn score(
                     commands.entity(entity).insert(Revealed);
                 } else {
                     commands.entity(entity).insert(Close);
-                    commands.entity(parent.0).insert(Animator::new(shake_seq()));
+                    commands.entity(parent.0).insert(Animator::new(shake_seq(ROT_TIME)));
                 }
             }
-            board.turns += 1;
+            board.inc_player_turn();
             let rem_cards = match board.hidden_cards.len() {
                 0 => board.deck.count(),
                 _ => board.hidden_cards.len() as u16 / 2,
             };
-            text.sections[0].value = format!("turns: {}      ",board.turns);
-            text.sections[1].value = format!( "Luck: {}      ", rem_cards);
-            text.sections[2].value = format!( "Perfect Memory: {}      ", rem_cards * 2 - 1);
+            //text.sections[0].value = format!("turns: {}      ", board.turns);
+            text.sections[1].value = format!("Luck: {}      ", rem_cards);
+            text.sections[2].value = format!("Perfect Memory: {}      ", rem_cards * 2 - 1);
         }
         1 => {
             for (entity, &parent) in closed.iter() {
                 if opened.get(entity).is_err() {
-                    commands.entity(parent.0).insert(Animator::new(rot_seq()));
+                    commands.entity(parent.0).insert(Animator::new(rot_seq(ROT_TIME)));
                     commands
                         .entity(entity)
-                        .insert(Animator::new(vis_seq(false)));
+                        .insert(Animator::new(vis_seq(ROT_TIME,false)));
                 }
                 commands.entity(entity).remove::<Close>();
             }
@@ -129,9 +94,9 @@ pub fn open_card(
         if let Some(entity) = board.flip_card(&id) {
             commands
                 .entity(parent.get(*entity).unwrap().0)
-                .insert(Animator::new(rot_seq()));
+                .insert(Animator::new(rot_seq(ROT_TIME)));
             commands.entity(*entity).insert(Animator::new(
-                vis_seq(true).with_completed_event(true, id.0 as u64),
+                vis_seq(ROT_TIME,true).with_completed_event(true, id.0 as u64),
             ));
         }
     }
@@ -143,16 +108,14 @@ pub fn open_card(
 }
 pub fn deck_complete(
     mut cmd: Commands,
-    mut board: ResMut<Board>,
+    board: ResMut<Board>,
     mut event: EventWriter<DeckCompletedEvent>,
-    mut score: Query<(Entity, &mut Text), With<ScoreBoard>>,
+    mut score: Query<(Entity, &mut Text, Option<&Animator<Transform>>), With<ScoreBoard>>,
     mut animate_evr: EventReader<TweenCompleted>,
 ) {
-    if !board.completed && board.hidden_cards.is_empty() {
-        board.completed = true;
-        let (entity, mut text) = score.single_mut();
-        text.sections[0].value = format!("Board Completed\n");
-        text.sections[1].value = format!("{}{}", text.sections[0].value,text.sections[1].value);
+    if board.hidden_cards.is_empty() {
+        if let (entity, mut text, None) = score.single_mut(){
+        text.sections[3].value = format!("Board Completed\n");
         cmd.entity(entity)
             .insert(Animator::new(Tween::new(
                 EaseFunction::ElasticInOut,
@@ -176,10 +139,33 @@ pub fn deck_complete(
                 )
                 .with_completed_event(true, std::u64::MAX),
             ));
+        }
     }
     for anim in animate_evr.iter() {
         if anim.user_data == std::u64::MAX {
             event.send(DeckCompletedEvent);
+        }
+    }
+}
+#[derive(Component)]
+pub struct AiTimer(Timer);
+pub fn ai(
+    mut cmd: Commands,
+    mut event: EventWriter<CardFlipEvent>,
+    avail: Query<&Idx, (Without<Open>, Without<Revealed>)>,
+    time: Res<Time>,
+    mut query: Query<&mut AiTimer>,
+) {
+    if query.is_empty() {
+        cmd.spawn().insert(AiTimer(Timer::from_seconds(0.5, false)));
+    } else {
+        let mut timer = query.single_mut();
+        if timer.0.tick(time.delta()).just_finished() {
+            let mut rng = rand::thread_rng();
+            if !avail.is_empty() {
+                event.send(CardFlipEvent(*avail.iter().choose(&mut rng).unwrap()));
+            }
+            timer.0.reset();
         }
     }
 }

@@ -1,4 +1,4 @@
-use bevy::prelude::Component;
+use bevy::prelude::*;
 
 use std::fmt::{self, Display, Formatter};
 use std::ops::{Add, Sub};
@@ -50,7 +50,7 @@ impl Display for Coordinates {
 }
 
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
-#[derive(Debug, Copy, Default, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Component)]
+#[derive(Debug, Copy, Default, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Component, Deref, DerefMut)]
 pub struct Idx(pub u16);
 impl Display for Idx {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

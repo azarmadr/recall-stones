@@ -5,16 +5,15 @@ use bevy::{
 mod menu;
 use menu::*;
 use paper_plugin::{ tween::*,* };
+//mod xp;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
     InGame,
     Menu,
     Splash,
 }
 /// Timer to help start another game after completing one
-#[derive(Component)]
-pub struct RestartTimer(Timer);
 fn main() {
     let mut app = App::new();
     // Window setup
@@ -45,9 +44,9 @@ fn main() {
     .init_resource::<MenuMaterials>() //to be removed
     .add_state(AppState::Splash)
     .add_startup_system(startup)
-    .add_system(button_system)
     .add_system(on_completion)
     .add_system(restart_game_on_timer)
+    //.add_startup_system(xp::setup_menu)
     .add_system(component_animator_system::<UiColor>)
     // Run the app
     .run();
@@ -60,14 +59,16 @@ fn startup(
     // Camera
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
-    state.set(AppState::InGame).unwrap();
+    state.set(AppState::Menu).unwrap();
 }
+#[derive(Component)]
+pub struct RestartTimer(Timer);
 /// Display Menu for 3 seconds before applying the set options
 fn restart_game_on_timer(
     mut commands: Commands,
+    mut state: ResMut<State<AppState>>,
     time: Res<Time>,
     mut query: Query<(Entity, &mut RestartTimer)>,
-    mut state: ResMut<State<AppState>>,
     buttons: Query<(Entity, &ButtonAction)>,
 ) {
     for (entity, mut timer) in query.iter_mut() {
@@ -80,11 +81,11 @@ fn restart_game_on_timer(
         if timer.0.percent() < 0.027 {
             for (entity, &button) in buttons.iter() {
                 if button == ButtonAction::Apply {
-                    commands.entity(entity).insert(Animator::new(Tween::new(
+                    commands.entity(entity).insert(Animator::new(Tween::<UiColor>::new(
                         EaseFunction::QuadraticIn,
                         TweeningType::Once,
                         std::time::Duration::from_secs(2),
-                        ColorLens::<UiColor>::new(Color::RED,Color::GREEN),
+                        ColorLens::new(Color::RED,Color::GREEN),
                     )));
                 }
             }
@@ -93,18 +94,13 @@ fn restart_game_on_timer(
 }
 fn on_completion(
     mut state: ResMut<State<AppState>>,
-    board: Option<Res<Board>>,
     mut commands: Commands,
     mut board_options: ResMut<BoardOptions>,
     mut board_complete_evr: EventReader<DeckCompletedEvent>,
 ) {
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
-        if let Some(b) = &board {
-            if b.turns < 2 * b.deck.len() as u32 {
-                board_options.level_up();
-            }
-        }
+        board_options.level_up();
         commands
             .spawn()
             .insert(RestartTimer(Timer::from_seconds(3., false)));

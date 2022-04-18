@@ -1,6 +1,5 @@
-use bevy::prelude::Component;
+use bevy::prelude::*;
 pub use coordinates::*;
-use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Copy, Clone, Component)]
@@ -18,17 +17,5 @@ pub struct ScoreBoard;
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Revealed;
-
-/// Collection specifying corresponing assets
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Component, Serialize, Deserialize)]
-pub enum Collection {
-    Eng,
-    Tel,
-    Clubs,
-    Diamonds,
-    Spades,
-    Hearts,
-    Dice,
-}
 
 mod coordinates;

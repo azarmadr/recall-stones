@@ -1,10 +1,70 @@
 use super::AppState;
 use autodefault::autodefault;
-use bevy::log;
+use bevy::ecs::system::Resource;
 use bevy::prelude::*;
-
 use paper_plugin::BoardOptions;
 pub use paper_plugin::Mode;
+use enum_dispatch::enum_dispatch;
+
+pub type Act<T> = dyn Fn(&mut T) + Send + Sync + 'static;
+#[derive(Component)]
+pub struct ButtonAct<T> {
+    name: String,
+    action: Box<Act<T>>,
+}
+impl<T: Resource> ButtonAct<T> {
+    pub fn new<U>(name: String, action: U) -> Self
+    where
+        U: Fn(&mut T) + Send + Sync + 'static,
+    {
+        Self {
+            name,
+            action: Box::new(action),
+        }
+    }
+}
+#[enum_dispatch]
+pub trait SpawnButtonWithAction {
+    fn spawn_button(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>);
+}
+//impl SpawnButtonWithAction
+impl<T: Resource> SpawnButtonWithAction for ButtonAct<T> {
+    fn spawn_button(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
+        let name = &self.name.clone();
+        parent
+            .spawn_bundle(button_border(materials))
+            .with_children(|p| {
+                p.spawn_bundle(button(materials))
+                    .insert(self)
+                    .insert(Name::new(format!("Button({:?})", name)))
+                    .with_children(|p| {
+                        p.spawn_bundle(button_text(materials, name));
+                    });
+            });
+    }
+}
+#[enum_dispatch(SpawnButtonWithAction)]
+pub enum ResourceMap{
+    State(ButtonAct<State<AppState>>),
+    Opts(ButtonAct<BoardOptions>),
+    //PhantomData(std::marker::PhantomData<T>)
+}
+pub fn asset_button_server<T: Resource>(
+    button_colors: Res<MenuMaterials>,
+    mut asset: ResMut<T>,
+    mut interaction_query: Query<(&Interaction, &ButtonAct<T>, &mut UiColor), Changed<Interaction>>,
+) {
+    for (interaction, action, mut color) in interaction_query.iter_mut() {
+        if *interaction == Interaction::Clicked {
+            (action.action)(asset.as_mut());
+        }
+        *color = match *interaction {
+            Interaction::Clicked => button_colors.pressed.into(),
+            Interaction::Hovered => button_colors.hovered.into(),
+            Interaction::None => button_colors.button.into(),
+        }
+    }
+}
 
 pub struct MenuMaterials {
     pub none: UiColor,
@@ -37,33 +97,19 @@ impl FromWorld for MenuMaterials {
         }
     }
 }
-pub fn button_system(
-    button_colors: Res<MenuMaterials>,
-    mut buttons: Query<(&Interaction, &mut UiColor), (Changed<Interaction>, With<Button>)>,
-) {
-    for (interaction, mut color) in buttons.iter_mut() {
-        *color = match *interaction {
-            Interaction::Clicked => button_colors.pressed.into(),
-            Interaction::Hovered => button_colors.hovered.into(),
-            Interaction::None => button_colors.button.into(),
-        }
-    }
-}
 /// Button action type
 //#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Copy, Clone, PartialEq, Component)]
 pub enum ButtonAction {
-    //Clear,
     LevelUp,
     LevelDown,
-    CoupletUp,
-    CoupletDown,
     Apply,
     Save,
     //#[Inspectable]
     Mode(Mode),
     Menu,
 }
+pub use ButtonAction::*;
 impl ButtonAction {
     pub fn name(&self) -> String {
         match self {
@@ -72,57 +118,27 @@ impl ButtonAction {
         }
     }
     #[autodefault]
-    pub fn create_button(&self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
-        parent
-            .spawn_bundle(button_border(materials))
-            .with_children(|p|{p
-            .spawn_bundle(button(materials))
-            .insert(*self)
-            .insert(Name::new(format!("Button({:?})",self)))
-            .with_children(|p| {
-                p.spawn_bundle(button_text(materials, &self.name()));
-            });});
-    }
-}
-pub fn action_system(
-    mut interaction_query: Query<
-        (&Interaction, &ButtonAction),
-        (Changed<Interaction>, With<Button>),
-    >,
-    mut board_options: ResMut<BoardOptions>,
-    mut state: ResMut<State<AppState>>,
-) {
-    for (interaction, action) in interaction_query.iter_mut() {
-        log::debug!("{:?}", action);
-        if *interaction == Interaction::Clicked {
-            match action {
-                ButtonAction::LevelUp => board_options.level_up(),
-                ButtonAction::LevelDown => board_options.level_down(),
-                ButtonAction::CoupletUp => {
-                    if board_options.couplets < 5 {
-                        board_options.couplets += 1;
-                    }
+    pub fn spawn_button(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
+        match self {
+            Apply => ResourceMap::State(ButtonAct::new(self.name(), |state: &mut State<AppState>| {
+                if *state.current() == AppState::Menu {
+                    state.overwrite_replace(AppState::InGame).unwrap();
                 }
-                ButtonAction::CoupletDown => {
-                    if board_options.couplets > 2 {
-                        board_options.couplets -= 1;
-                    }
+            })),
+            Save => ResourceMap::State(ButtonAct::new(self.name(), |state: &mut State<AppState>| {
+                if !state.inactives().is_empty() && *state.current() == AppState::Menu {
+                    state.overwrite_pop().unwrap();
                 }
-                ButtonAction::Save => match state.current() {
-                    AppState::Menu => state.overwrite_pop().unwrap(),
-                    _ => (),
-                },
-                ButtonAction::Apply => match state.current() {
-                    AppState::Menu => state.overwrite_replace(AppState::InGame).unwrap(),
-                    _ => (),
-                },
-                ButtonAction::Menu => match state.current() {
-                    AppState::InGame => state.overwrite_push(AppState::Menu).unwrap(),
-                    _ => {}
-                },
-                ButtonAction::Mode(x) => board_options.mode = *x,
-            }
-        }
+            })),
+            Menu => ResourceMap::State(ButtonAct::new(self.name(), |state: &mut State<AppState>| {
+                if *state.current() == AppState::InGame {
+                    state.overwrite_push(AppState::Menu).unwrap();
+                }
+            })),
+            LevelUp => ResourceMap::Opts(ButtonAct::new(self.name(), |opts: &mut BoardOptions| opts.level_up())),
+            LevelDown => ResourceMap::Opts(ButtonAct::new(self.name(), |opts: &mut BoardOptions| opts.level_down())),
+            Mode(x) => ResourceMap::Opts(ButtonAct::new(self.name(), move |opts: &mut BoardOptions| opts.mode = x)),
+        }.spawn_button(parent, materials);
     }
 }
 pub fn root(materials: &Res<MenuMaterials>) -> NodeBundle {
@@ -199,14 +215,14 @@ pub fn menu_lr(materials: &Res<MenuMaterials>) -> NodeBundle {
 pub fn menu_td(materials: &Res<MenuMaterials>) -> NodeBundle {
     menu_background(materials, FlexDirection::ColumnReverse)
 }
-pub fn button_text(materials: &Res<MenuMaterials>, label: &str) -> TextBundle {
+pub fn button_text<S: Into<String>>(materials: &Res<MenuMaterials>, label: S) -> TextBundle {
     TextBundle {
         style: Style {
             margin: Rect::all(Val::Px(10.0)),
             ..Default::default()
         },
         text: Text::with_section(
-            label,
+            label.into(),
             TextStyle {
                 font: materials.font.clone(),
                 font_size: 30.0,

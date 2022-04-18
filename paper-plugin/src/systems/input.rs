@@ -17,7 +17,9 @@ pub fn input_handling(
             let position = window.cursor_position();
             if let Some(pos) = position {
                 log::trace!("Mouse button pressed: {:?} at {}", event.button, pos);
-                let tile_coordinates = board.mouse_position(window, pos);
+                let tile_coordinates = board.mouse_position(
+                    pos - Vec2::new(window.width(), window.height())/2.
+                    );
                 if let Some(coordinates) = tile_coordinates {
                     if event.button == MouseButton::Left {
                         flip_card_ewr.send(CardFlipEvent(coordinates));
