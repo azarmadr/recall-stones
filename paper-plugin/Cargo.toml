@@ -14,6 +14,8 @@ debug = ["colored", "bevy-inspector-egui"]
 serde = "1.0"
 rand = "0.8"
 autodefault = "2.0.0"
+duplicate = "0.4"
+enum_dispatch = "0.3"
 bevy_tweening = "0.4"
 #mat = {path = "mat"}
 

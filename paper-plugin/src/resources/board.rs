@@ -1,6 +1,6 @@
 use crate::components::Idx;
-use crate::player::*;
 use crate::deck::Deck;
+use crate::player::*;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use std::collections::HashMap;
@@ -10,45 +10,46 @@ pub struct Board {
     pub deck: Deck,
     pub card_size: f32,
     pub board_position: Vec3,
-    pub hidden_cards: HashMap<Idx, Entity>,
-    pub opened_count: HashMap<Idx, u16>,
+    pub hidden_cards: HashMap<u8, Entity>,
     pub entity: Entity,
-    pub current_player: u8,
     pub player_panels: Vec<Panel>,
 }
 impl Board {
     /// Retrieves a covered tile entity
     #[inline]
     #[must_use]
-    pub fn flip_card(&self, id: &Idx) -> Option<&Entity> {
-        self.hidden_cards.get(id)
+    pub fn flip_card(&self, id: u8) -> Option<&Entity> {
+        self.hidden_cards.get(&id)
     }
     #[inline]
     #[must_use]
     pub fn is_revealed(&self, id: &Idx) -> bool {
         !self.hidden_cards.contains_key(id)
     }
+    /*
     #[inline]
     #[must_use]
-    pub fn opened_count(&self, id: &Idx) -> u16 {
+    pub fn opened_count(&self, id: &Idx) -> u8 {
         match self.opened_count.get(id) {
             Some(v) => *v,
             None => 1,
         }
     }
+    */
     #[inline]
     #[must_use]
-    pub fn get_card_val(&self, id: &Idx) -> Option<&u16> {
-        let Idx(i) = *id;
-        self.deck.get(i as usize)
+    pub fn get_card_val(&self, id: &Idx) -> Option<&u8> {
+        self.deck.get(**id as usize)
     }
     /// reveal all the matching cards
     #[inline]
-    pub fn reveal_matching_cards(&mut self, ids: Vec<Idx>) {
+    pub fn reveal_matching_cards(&mut self, ids: Vec<u8>) {
+        /*
         for e in ids.iter() {
             let count = self.opened_count.entry(*e).or_insert(0);
             *count += 1;
         }
+        */
         if self.deck.matching_cards(&ids) {
             for id in ids.iter() {
                 //probably return to add cloaks
@@ -62,14 +63,11 @@ impl Board {
             return None;
         }
         let coordinates = (position - self.board_position.xy()) / self.card_size;
-        Some(Idx(
-            coordinates.x as u16 + self.deck.width() * coordinates.y as u16
+        Some(Idx::from2d(
+            coordinates.x as u8,
+            coordinates.y as u8,
+            self.deck.width() as u8,
         ))
-    }
-    #[inline]
-    pub fn inc_player_turn(&mut self) {
-        let player = self.current_player;
-        self.player_panels[player as usize].turns += 1;
     }
     #[inline]
     #[must_use]

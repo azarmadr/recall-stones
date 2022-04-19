@@ -13,22 +13,32 @@ fn despawn<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) 
 }
 
 #[derive(Component)]
-struct SwichBoard<T>(Vec<Vec<T>>);
-#[derive(Component)]
 struct MenuUI;
 #[derive(Component)]
 struct MenuBoardOptions;
 #[autodefault]
 fn setup_menu(mut commands: Commands, materials: Res<MenuMaterials>) {
     // Make list of buttons
-    let buttons: Vec<Vec<ButtonAction>> = vec![
-    vec![ButtonAction::LevelUp, ButtonAction::LevelDown],
-        //vec![ButtonAction::CoupletUp, ButtonAction::CoupletDown],
-        [Zebra,SameColor,AnyColor].iter().map(|x| ButtonAction::Mode(*x)).collect(),
-        vec![ButtonAction::Apply, ButtonAction::Save],
+    let buttons: Vec<Vec<ResourceMap>> = vec![
+        vec![Level(true).into(), "Level".into(), Level(false).into()],
+        vec![Human(true).into(), "Human".into(), Human(false).into(),"  |  \n  |  ".into(),Bot(true).into(), "Bot".into(), Bot(false).into()],
+        [Zebra, SameColor, AnyColor]
+            .iter()
+            .map(|x| ButtonAction::Mode(*x).into())
+            .collect(),
+        vec![ButtonAction::Apply.into(), ButtonAction::Save.into()],
     ];
-    /*
-    */
+    let p = |parent: &mut ChildBuilder| {
+        for lr in buttons {
+            parent
+                .spawn_bundle(menu_lr(&materials))
+                .with_children(|parent| {
+                    for button in lr {
+                        button.spawn_button(parent, &materials)
+                    }
+                });
+        }
+    };
     commands
         .spawn_bundle(root(&materials))
         .insert(MenuUI)
@@ -40,15 +50,7 @@ fn setup_menu(mut commands: Commands, materials: Res<MenuMaterials>) {
                     parent
                         .spawn_bundle(menu_td(&materials))
                         .with_children(|parent| {
-                            for lr in buttons {
-                                parent
-                                    .spawn_bundle(menu_lr(&materials))
-                                    .with_children(|parent| {
-                                        for button in lr {
-                                            button.spawn_button(parent, &materials)
-                                        }
-                                    });
-                            }
+                            p(parent);
                             parent
                                 .spawn_bundle(TextBundle {
             text: Text {
@@ -158,7 +160,7 @@ fn setup_ui(
                     })
                     .insert(Name::new("ScoreBoard"))
                     .insert(ScoreBoard);
-                let _ = &ButtonAction::Menu.spawn_button(parent, &materials);
+                ButtonAction::Menu.into().spawn_button(parent, &materials);
             });
         });
 }

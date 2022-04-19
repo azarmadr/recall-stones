@@ -101,7 +101,7 @@ pub struct BoardOptions {
     pub mode: Mode,
     pub level: u8,
     pub couplets: u8,
-    pub players: u8,
+    pub players: (u8, u8),
 }
 impl Default for BoardPosition {
     fn default() -> Self {
@@ -124,11 +124,11 @@ impl BoardOptions {
             ],
             //mode: AnyColor,
             mode: Zebra,
-            players: 1,
+            players: (1, 0),
         }
     }
     /// Computes a card size that matches the window according to the card map size
-    pub fn card_size(&self, width: u16, height: u16) -> f32 {
+    pub fn card_size(&self, width: u8, height: u8) -> f32 {
         match self.card_size {
             CardSize::Fixed(v) => v,
             CardSize::Adaptive { min, max, window } => {
@@ -152,36 +152,29 @@ impl BoardOptions {
             || self.collections.contains(&Hearts)
             || self.collections.contains(&Diamonds)
     }
-    pub fn deck_params(&self) -> (u16, u16, u8) {
-        let (deck_size, suite_size, ct_jump, mx_jump): (u16, u16, u16, u16) = match self.mode {
+    pub fn deck_params(&self) -> (u8, u8, u8) {
+        let (deck_size, suite_size, ct_jump, mx_jump): (u8, u8, u8, u8) = match self.mode {
             AnyColor => (3, 4, 5, 2),          //pairs 28,      uniq 14
             SameColor | Zebra => (3, 8, 5, 4), //pairs 28,       uniq 28
             TwoDecks => (6, 16, 10, 8),        //pairs & uniq 56
             _ => (3, 4, 5, 2),
         };
         (
-            deck_size + self.level as u16 * ct_jump,
-            suite_size + self.level as u16 * mx_jump,
+            deck_size + self.level * ct_jump,
+            suite_size + self.level * mx_jump,
             self.couplets,
         )
     }
-    pub fn level_up(&mut self) {
-        self.level = min(5, self.level + 1);
-    }
-    pub fn level_down(&mut self) {
-        self.level = self.level.saturating_sub(1);
-    }
     pub fn to_string(&self) -> String {
         format!(
-            "Level: {}, Couplets: {}, Mode: {:?}",
-            self.level, self.couplets, self.mode
+            "Level: {}, Mode: {:?}, Humans: {}, Bots: {}",
+            self.level, self.mode, self.players.0, self.players.1
         )
     }
 }
 impl FromWorld for BoardOptions {
     fn from_world(world: &mut World) -> Self {
         let world = world.cell();
-        //let asset_server = world.get_resource_mut::<AssetServer>().unwrap();
         let windows = world.get_resource::<Windows>().unwrap();
         let window = windows.get_primary().unwrap();
         BoardOptions {

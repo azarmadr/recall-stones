@@ -1,3 +1,4 @@
+use std::cmp::*;
 use super::AppState;
 use autodefault::autodefault;
 use bevy::ecs::system::Resource;
@@ -43,26 +44,20 @@ impl<T: Resource> SpawnButtonWithAction for ButtonAct<T> {
             });
     }
 }
+impl SpawnButtonWithAction for String {
+    fn spawn_button(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
+        parent .spawn_bundle(button_text(materials, self));
+    }
+}
 #[enum_dispatch(SpawnButtonWithAction)]
 pub enum ResourceMap{
     State(ButtonAct<State<AppState>>),
     Opts(ButtonAct<BoardOptions>),
-    //PhantomData(std::marker::PhantomData<T>)
+    Text(String),
 }
-pub fn asset_button_server<T: Resource>(
-    button_colors: Res<MenuMaterials>,
-    mut asset: ResMut<T>,
-    mut interaction_query: Query<(&Interaction, &ButtonAct<T>, &mut UiColor), Changed<Interaction>>,
-) {
-    for (interaction, action, mut color) in interaction_query.iter_mut() {
-        if *interaction == Interaction::Clicked {
-            (action.action)(asset.as_mut());
-        }
-        *color = match *interaction {
-            Interaction::Clicked => button_colors.pressed.into(),
-            Interaction::Hovered => button_colors.hovered.into(),
-            Interaction::None => button_colors.button.into(),
-        }
+impl From<&str> for ResourceMap{
+    fn from(text: &str) -> ResourceMap {
+        ResourceMap::Text(text.to_string())
     }
 }
 
@@ -101,24 +96,29 @@ impl FromWorld for MenuMaterials {
 //#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Copy, Clone, PartialEq, Component)]
 pub enum ButtonAction {
-    LevelUp,
-    LevelDown,
+    Level(bool),
+    Mode(Mode),
+    Human(bool),
+    Bot(bool),
     Apply,
     Save,
-    //#[Inspectable]
-    Mode(Mode),
     Menu,
 }
 pub use ButtonAction::*;
 impl ButtonAction {
     pub fn name(&self) -> String {
         match self {
-            ButtonAction::Mode(x) => format!("{:?}", x),
+            Mode(x) => format!("{:?}", x),
+            Level(_) => format!("Level"),
+            Human(_) => format!("Human Player"),
+            Bot(_) => format!("Bots"),
             _ => format!("{:?}", self),
         }
     }
     #[autodefault]
-    pub fn spawn_button(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
+    pub fn into(self) -> ResourceMap {
+        let symbol = |x| if x {"+".to_string()} else {"-".to_string()};
+        let set = |i, x: u8, lb, ub|if i==true {min(x + 1, ub)}else{max(lb,x.saturating_sub(1))};
         match self {
             Apply => ResourceMap::State(ButtonAct::new(self.name(), |state: &mut State<AppState>| {
                 if *state.current() == AppState::Menu {
@@ -135,10 +135,11 @@ impl ButtonAction {
                     state.overwrite_push(AppState::Menu).unwrap();
                 }
             })),
-            LevelUp => ResourceMap::Opts(ButtonAct::new(self.name(), |opts: &mut BoardOptions| opts.level_up())),
-            LevelDown => ResourceMap::Opts(ButtonAct::new(self.name(), |opts: &mut BoardOptions| opts.level_down())),
-            Mode(x) => ResourceMap::Opts(ButtonAct::new(self.name(), move |opts: &mut BoardOptions| opts.mode = x)),
-        }.spawn_button(parent, materials);
+            Mode(x) => ResourceMap::Opts(ButtonAct::new(self.name(), move | opts: &mut BoardOptions | opts.mode = x)),
+            Level(x) => ResourceMap::Opts(ButtonAct::new(symbol(x),move   | opts: &mut BoardOptions | opts.level = set(x,opts.level,0,5))),
+            Human(x) => ResourceMap::Opts(ButtonAct::new(symbol(x), move  | opts: &mut BoardOptions | opts.players.0 = set(x,opts.players.0,1,2))),
+            Bot(x) => ResourceMap::Opts(ButtonAct::new(symbol(x),    move | opts: &mut BoardOptions | opts.players.1 = set(x,opts.players.1,0,1))),
+        }
     }
 }
 pub fn root(materials: &Res<MenuMaterials>) -> NodeBundle {
@@ -159,6 +160,8 @@ pub fn button_border(materials: &Res<MenuMaterials>) -> NodeBundle {
         style: Style {
             size: Size::new(Val::Percent(100.), Val::Px(50.)),
             border: Rect::all(Val::Px(3.0)),
+            flex_shrink: 5.,
+            flex_basis: Val::Px(0.),
             ..Default::default()
         },
         color: materials.button_border.clone(),
@@ -169,7 +172,8 @@ pub fn border(materials: &Res<MenuMaterials>) -> NodeBundle {
     NodeBundle {
         style: Style {
             size: Size::new(Val::Px(400.0), Val::Auto),
-            border: Rect::all(Val::Px(8.0)),
+            border: Rect::all(Val::Px(3.0)),
+            flex_basis: Val::Px(0.),
             ..Default::default()
         },
         color: materials.border.clone(),
@@ -181,11 +185,9 @@ pub fn button(materials: &Res<MenuMaterials>) -> ButtonBundle {
         style: Style {
             size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
             justify_content: JustifyContent::Center,
-            //size: Size::new(Val::Px(350.0), Val::Px(65.0)),
-            //margin: Rect::all(Val::Auto),
-            //size: Size::new(Val::Percent(95.), Val::Auto),
-            //margin: Rect::all(Val::Px(10.)),
             align_items: AlignItems::Center,
+            border: Rect::all(Val::Px(3.0)),
+            flex_basis: Val::Px(0.),
             ..Default::default()
         },
         color: materials.button,
@@ -219,6 +221,7 @@ pub fn button_text<S: Into<String>>(materials: &Res<MenuMaterials>, label: S) ->
     TextBundle {
         style: Style {
             margin: Rect::all(Val::Px(10.0)),
+            flex_basis: Val::Px(0.),
             ..Default::default()
         },
         text: Text::with_section(
@@ -228,8 +231,27 @@ pub fn button_text<S: Into<String>>(materials: &Res<MenuMaterials>, label: S) ->
                 font_size: 30.0,
                 color: materials.button_text.0,
             },
-            Default::default(),
+            TextAlignment {
+                vertical: VerticalAlign::Center,
+                horizontal: HorizontalAlign::Center,
+            }
         ),
         ..Default::default()
+    }
+}
+pub fn asset_button_server<T: Resource>(
+    button_colors: Res<MenuMaterials>,
+    mut asset: ResMut<T>,
+    mut interaction_query: Query<(&Interaction, &ButtonAct<T>, &mut UiColor), Changed<Interaction>>,
+) {
+    for (interaction, action, mut color) in interaction_query.iter_mut() {
+        if *interaction == Interaction::Clicked {
+            (action.action)(asset.as_mut());
+        }
+        *color = match *interaction {
+            Interaction::Clicked => button_colors.pressed.into(),
+            Interaction::Hovered => button_colors.hovered.into(),
+            Interaction::None => button_colors.button.into(),
+        }
     }
 }

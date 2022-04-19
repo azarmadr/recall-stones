@@ -4,7 +4,7 @@ use bevy::{
 };
 mod menu;
 use menu::*;
-use paper_plugin::{ tween::*,* };
+use paper_plugin::{tween::*, *};
 //mod xp;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -40,22 +40,19 @@ fn main() {
     }
     // Board plugin
     app.add_plugin(PaperPlugin(AppState::InGame))
-    .add_plugin(MenuPlugin)
-    .init_resource::<MenuMaterials>() //to be removed
-    .add_state(AppState::Splash)
-    .add_startup_system(startup)
-    .add_system(on_completion)
-    .add_system(restart_game_on_timer)
-    //.add_startup_system(xp::setup_menu)
-    .add_system(component_animator_system::<UiColor>)
-    // Run the app
-    .run();
+        .add_plugin(MenuPlugin)
+        .init_resource::<MenuMaterials>() //to be removed
+        .add_state(AppState::Splash)
+        .add_startup_system(startup)
+        .add_system(on_completion)
+        .add_system(restart_game_on_timer)
+        //.add_startup_system(xp::setup_menu)
+        .add_system(component_animator_system::<UiColor>)
+        // Run the app
+        .run();
 }
 /// Pre launch setup of assets and options
-fn startup(
-    mut commands: Commands,
-    mut state: ResMut<State<AppState>>,
-) {
+fn startup(mut commands: Commands, mut state: ResMut<State<AppState>>) {
     // Camera
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
@@ -81,12 +78,18 @@ fn restart_game_on_timer(
         if timer.0.percent() < 0.027 {
             for (entity, &button) in buttons.iter() {
                 if button == ButtonAction::Apply {
-                    commands.entity(entity).insert(Animator::new(Tween::<UiColor>::new(
-                        EaseFunction::QuadraticIn,
-                        TweeningType::Once,
-                        std::time::Duration::from_secs(2),
-                        ColorLens::new(Color::RED,Color::GREEN),
-                    )));
+                    commands
+                        .entity(entity)
+                        .insert(Animator::new(Tween::<UiColor>::new(
+                            EaseFunction::QuadraticIn,
+                            TweeningType::Once,
+                            std::time::Duration::from_secs(2),
+                            BeTween::with_lerp(|t: &mut UiColor, _, r| {
+                                t.0 = Vec4::from(Color::RED)
+                                    .lerp(Vec4::from(Color::GREEN), r)
+                                    .into()
+                            }),
+                        )));
                 }
             }
         }
@@ -95,12 +98,10 @@ fn restart_game_on_timer(
 fn on_completion(
     mut state: ResMut<State<AppState>>,
     mut commands: Commands,
-    mut board_options: ResMut<BoardOptions>,
     mut board_complete_evr: EventReader<DeckCompletedEvent>,
 ) {
     for _ev in board_complete_evr.iter() {
         state.push(AppState::Menu).unwrap();
-        board_options.level_up();
         commands
             .spawn()
             .insert(RestartTimer(Timer::from_seconds(3., false)));

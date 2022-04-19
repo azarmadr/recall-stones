@@ -7,6 +7,7 @@ use {
     rand::{prelude::*,seq::index::sample},
     std::collections::HashMap,
     std::time::Duration,
+    player::*,
     {components::*, deck::Deck, tween::*},
 };
 pub use {components::ScoreBoard, events::*, resources::*};
@@ -40,7 +41,8 @@ impl<T: StateData+Copy> Plugin for PaperPlugin<T> {
                 .with_system(systems::input::input_handling)
                 .with_system(systems::uncover::open_card)
                 .with_system(systems::uncover::deck_complete)
-                .with_system(systems::uncover::ai),
+                .with_system(systems::turn::turn)
+                .with_system(systems::turn::ai),
         )
         .add_system_set(
             SystemSet::on_in_stack_update(**self)
@@ -57,7 +59,7 @@ impl<T: StateData+Copy> Plugin for PaperPlugin<T> {
         #[cfg(feature = "debug")]
         {
             app.register_inspectable::<Idx>()
-                .register_inspectable::<Coordinates>()
+                //.register_inspectable::<Coordinates>()
                 .register_inspectable::<Open>()
                 .register_inspectable::<Revealed>();
             log::info!("Loaded Board Plugin");
@@ -84,7 +86,6 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
         log::info!("board size: {}", board_size);
     }
     let hidden_cards = HashMap::with_capacity(deck.len());
-    let opened_count = HashMap::with_capacity(deck.len());
     let board_entity = cmd
         .spawn()
         .insert(Name::new("Board"))
@@ -100,16 +101,16 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
         })
         .insert(InsertDeck)
         .id();
-        let mut rng = thread_rng();
+
+        let player_panels = Panel::init(&mut cmd, options.players);
+        cmd.entity(player_panels[0].entity).insert(Turn);
     cmd.insert_resource(Board {
         deck,
         card_size,
         board_position,
         hidden_cards,
-        opened_count,
         entity: board_entity,
-        current_player: rng.gen_range(0..options.players),
-        player_panels: vec![default()]
+        player_panels
     })
 }
 //#[autodefault(except(Board))] //mat
@@ -140,7 +141,7 @@ fn spawn_cards(
             let collections = &options.collections;
             let padding = options.card_padding;
             let (count, max, couplets) = options.deck_params();
-            let mut rng = rand::thread_rng();
+            let mut rng = thread_rng();
             let sample_size = std::cmp::max(couplets as usize, collections.len());
             let seq = |i| {
                 Delay::new(Duration::from_millis(i as u64 * 81)).then(Tween::new(
@@ -156,7 +157,7 @@ fn spawn_cards(
             for i in 0..count * 2 {
                 let (x, y) = (i % board.deck.width(), i / board.deck.width());
                 let card = board.deck[i as usize];
-                let id = Idx(i);
+                let id = Idx(i, 0);
                 let zebra = match options.mode {
                     Mode::Zebra | Mode::SameColor => true,
                     _ => false,
@@ -196,7 +197,7 @@ fn spawn_cards(
                             .insert(Name::new("Card"))
                             .insert(id)
                             .id();
-                        board.hidden_cards.insert(id, entity);
+                        board.hidden_cards.insert(**&id, entity);
                     });
             }
         })

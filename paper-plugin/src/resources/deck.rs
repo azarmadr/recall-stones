@@ -1,4 +1,4 @@
-use crate::components::Idx;
+//use crate::components::Idx;
 use rand::seq::{index::sample, SliceRandom};
 use std::iter::repeat;
 use std::ops::{Deref, DerefMut};
@@ -8,15 +8,15 @@ use super::Mode;
 /// Base tile map
 #[derive(Debug, Clone)]
 pub struct Deck {
-    count: u16,
-    max: u16,
+    count: u8,
+    max: u8,
     couplets: u8,
     mode: Mode,
-    map: Vec<u16>,
+    map: Vec<u8>,
 }
 impl Deck {
     /// Randomize couplets till max count and initialize them in the Deck
-    pub fn init((count, max, couplets): (u16, u16, u8), mode: Mode) -> Self {
+    pub fn init((count, max, couplets): (u8, u8, u8), mode: Mode) -> Self {
         let sample_max = if mode == Mode::Zebra { max / 2 } else { max };
         let cycles = (count as f32 / sample_max as f32).ceil();
         println!(
@@ -26,7 +26,7 @@ impl Deck {
             (count as f32 / cycles).ceil() as usize
         );
         let mut rng = rand::thread_rng();
-        let mut map: Vec<u16> = repeat(cycles)
+        let mut map: Vec<u8> = repeat(cycles)
             .flat_map(|_| {
                 sample(
                     &mut rng,
@@ -35,7 +35,7 @@ impl Deck {
                 )
             })
             .flat_map(|x| {
-                repeat(x as u16).take(match mode {
+                repeat(x as u8).take(match mode {
                     Mode::HalfPlate | Mode::Zebra => 1,
                     _ => couplets.into(),
                 })
@@ -96,20 +96,18 @@ impl Deck {
     }
     #[inline]
     #[must_use]
-    pub fn get_val(&self, id: &Idx) -> Option<&u16> {
-        let Idx(i) = *id;
-        self.get(i as usize)
+    pub fn get_val(&self, id: u8) -> Option<&u8> {
+        self.get(id as usize)
     }
     #[inline]
     #[must_use]
-    pub fn matching_cards(&self, ids: &Vec<Idx>) -> bool {
+    pub fn matching_cards(&self, ids: &Vec<u8>) -> bool {
         if self.couplets > 2 || self.mode != Mode::Zebra {
-            //let (first, rest) = ids.first().unwrap();
-            let f_card = self.get_val(ids.first().unwrap()).unwrap();
-            ids.iter().all(|x| self.get_val(x).unwrap() == f_card)
+            let f_card = self.get_val(*ids.first().unwrap()).unwrap();
+            ids.iter().all(|&x| self.get_val(x).unwrap() == f_card)
         } else {
             if let (Some(&l), Some(&r)) = match &ids[..] {
-                &[first, second, ..] => (self.get_val(&first), self.get_val(&second)),
+                &[first, second, ..] => (self.get_val(first), self.get_val(second)),
                 _ => unreachable!(),
             } {
                 if l == r + self.max / 2 || r == l + self.max / 2 {
@@ -122,19 +120,21 @@ impl Deck {
             }
         }
     }
+    /*
     // Getter for `max`
     #[inline]
     #[must_use]
-    pub fn max(&self) -> u16 {
+    pub fn max(&self) -> u8 {
         self.max
     }
+    */
     // Getter for `count`
     #[inline]
     #[must_use]
-    pub fn count(&self) -> u16 {
+    pub fn count(&self) -> u8 {
         self.count
     }
-    // Getter for `open`
+    // Getter for `couplets`
     #[inline]
     #[must_use]
     pub fn couplets(&self) -> u8 {
@@ -144,22 +144,22 @@ impl Deck {
     // needs additional params
     #[inline]
     #[must_use]
-    pub fn width(&self) -> u16 {
+    pub fn width(&self) -> u8 {
         let duel = self.mode == Mode::HalfPlate;
         let len = self.map.len() / if duel { self.couplets.into() } else { 1 };
-        (len as f32).sqrt().round() as u16 * if duel { self.couplets as u16 } else { 1 }
+        (len as f32).sqrt().round() as u8 * if duel { self.couplets as u8 } else { 1 }
     }
     // Getter for `height`
     // needs additional params
     #[inline]
     #[must_use]
-    pub fn height(&self) -> u16 {
+    pub fn height(&self) -> u8 {
         let len = self.map.len(); // if self.duel { self.couplets.into() } else { 1 };
-        (len as f32 / self.width() as f32).ceil() as u16
+        (len as f32 / self.width() as f32).ceil() as u8
     }
 }
 impl Deref for Deck {
-    type Target = Vec<u16>;
+    type Target = Vec<u8>;
 
     fn deref(&self) -> &Self::Target {
         &self.map

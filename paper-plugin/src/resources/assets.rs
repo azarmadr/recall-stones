@@ -95,8 +95,8 @@ impl FromWorld for BoardAssets {
 }
 impl BoardAssets {
     /// Safely retrieves the color matching a value
-    pub fn card_color(&self, val: u16, max: u16) -> Color {
-        let value = (val * self.card_color.len() as u16 / max).saturating_sub(1) as usize;
+    pub fn card_color(&self, val: u8, max: u8) -> Color {
+        let value = (val * self.card_color.len() as u8 / max).saturating_sub(1) as usize;
         match self.card_color.get(value) {
             Some(c) => *c,
             None => match self.card_color.last() {
@@ -105,7 +105,7 @@ impl BoardAssets {
             },
         }
     }
-    pub fn count_color(&self, val: u16) -> Color {
+    pub fn count_color(&self, val: u8) -> Color {
         match val {
             1 => Color::GREEN,
             2 => Color::WHITE,
