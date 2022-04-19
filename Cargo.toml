@@ -21,7 +21,7 @@ version = "0.10"
 optional = true
 
 [dependencies.bevy]
-version = "0.7.*"
+version = "0.7"
 default-features = false
 features = [
   #"render",
@@ -30,7 +30,7 @@ features = [
   "bevy_render",        # Rendering framework core
   "bevy_sprite",        # 2D (sprites) rendering
   #"bevy_pbr",           # 3D (physically-based) rendering
-  #"bevy_core_pipeline", # Higher-level rendering abstractions
+  "bevy_core_pipeline", # Higher-level rendering abstractions
   #"bevy_gltf",          # GLTF 3D assets format support
   "bevy_text",          # Text/font rendering
   "bevy_ui",            # UI toolkit

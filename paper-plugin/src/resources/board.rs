@@ -12,7 +12,7 @@ pub struct Board {
     pub board_position: Vec3,
     pub hidden_cards: HashMap<u8, Entity>,
     pub entity: Entity,
-    pub player_panels: Vec<Panel>,
+    pub players: Vec<Panel>,
 }
 impl Board {
     /// Retrieves a covered tile entity

@@ -1,6 +1,6 @@
 use {
     autodefault::autodefault,
-    bevy::{ecs::schedule::StateData, log, prelude::*},
+    bevy::{ecs::schedule::StateData, prelude::*},
     player::*,
     rand::{prelude::*, seq::index::sample},
     std::collections::HashMap,
@@ -11,7 +11,9 @@ pub use {components::ScoreBoard, events::*, resources::*};
 
 //use mat::*;//mat
 #[cfg(feature = "debug")]
-use bevy_inspector_egui::RegisterInspectable;
+use {
+    bevy_inspector_egui::RegisterInspectable,bevy::log,
+};
 
 pub mod components;
 mod events;
@@ -99,15 +101,15 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
         .insert(InsertDeck)
         .id();
 
-    let player_panels = Panel::init(&mut cmd, options.players);
-    cmd.entity(player_panels[0].entity).insert(Turn);
+    let players = Panel::init(&mut cmd, options.players);
+    cmd.entity(players[0].entity).insert(Turn);
     cmd.insert_resource(Board {
         deck,
         card_size,
         board_position,
         hidden_cards,
         entity: board_entity,
-        player_panels,
+        players,
     })
 }
 //#[autodefault(except(Board))] //mat
@@ -200,7 +202,8 @@ fn spawn_cards(
         })
         .remove::<InsertDeck>();
 }
-fn cleanup_board(board: Res<Board>, mut cmd: Commands) {
+fn cleanup_board(board: Res<Board>, mut cmd: Commands, query: Query<Entity, With<Player>>) {
     cmd.entity(board.entity).despawn_recursive();
     cmd.remove_resource::<Board>();
+    query.iter().for_each(|e|cmd.entity(e).despawn_recursive());
 }

@@ -7,7 +7,7 @@ use std::time::Duration;
 
 const ROT_TIME: Duration = Duration::from_millis(81);
 pub fn score(
-    mut commands: Commands,
+    mut cmd: Commands,
     mut board: ResMut<Board>,
     mut opened: Query<(Entity, &mut Idx, &Parent), With<Open>>,
     closed: Query<(Entity, &Parent), With<Close>>,
@@ -21,21 +21,23 @@ pub fn score(
             board.reveal_matching_cards(opened.iter().map(|x| **x.1).collect());
             for (entity, mut id, parent) in opened.iter_mut() {
                 **id += 1;
-                commands.entity(entity).remove::<Open>();
+                let (e, pl) = player.single();
+                cmd.entity(entity).remove::<Open>();
                 if board.is_revealed(&id) {
-                    commands.entity(entity).insert(Revealed);
+                    if !board.hidden_cards.is_empty() {
+                    cmd.entity(entity).insert(Revealed);}
+                    board.players[pl.deref() as usize].opened.push(id.0);
                 } else {
-                    let (e, id) = player.single();
-                    commands.entity(e).remove::<Turn>();
-                    commands
+                    cmd.entity(e).remove::<Turn>();
+                    cmd
                         .entity(
-                            board.player_panels
-                                [(id.deref() as usize + 1) % board.player_panels.len()]
+                            board.players
+                                [(pl.deref() as usize + 1) % board.players.len()]
                             .entity,
                         )
                         .insert(Turn);
-                    commands.entity(entity).insert(Close);
-                    commands
+                    cmd.entity(entity).insert(Close);
+                    cmd
                         .entity(parent.0)
                         .insert(Animator::new(shake_seq(ROT_TIME)));
                 }
@@ -52,30 +54,30 @@ pub fn score(
         1 => {
             for (entity, &parent) in closed.iter() {
                 if opened.get(entity).is_err() {
-                    commands
+                    cmd
                         .entity(parent.0)
                         .insert(Animator::new(rot_seq(ROT_TIME)));
-                    commands
+                    cmd
                         .entity(entity)
                         .insert(Animator::new(vis_seq(ROT_TIME, false)));
                 }
-                commands.entity(entity).remove::<Close>();
+                cmd.entity(entity).remove::<Close>();
             }
         }
         _ => (),
     }
 }
 pub fn reveal_cards(
-    mut commands: Commands,
+    mut cmd: Commands,
     board_assets: Res<BoardAssets>,
     revealed: Query<(Entity, &Parent, &Idx), With<Revealed>>,
 ) {
     for (entity, &parent, id) in revealed.iter() {
         let count = id.1;
-        commands
+        cmd
             .entity(*parent)
             .insert(Animator::new(vis_seq(12 * ROT_TIME, false)));
-        commands
+        cmd
             .entity(entity)
             .remove::<Revealed>()
             .insert(Name::new("Revealed"))
@@ -103,7 +105,7 @@ pub fn reveal_cards(
     }
 }
 pub fn open_card(
-    mut commands: Commands,
+    mut cmd: Commands,
     board: Res<Board>,
     mut flip_card_evr: EventReader<CardFlipEvent>,
     mut animate_evr: EventReader<TweenCompleted>,
@@ -111,17 +113,16 @@ pub fn open_card(
 ) {
     for CardFlipEvent(id) in flip_card_evr.iter() {
         if let Some(entity) = board.flip_card(*id) {
-            commands
-                .entity(parent.get(*entity).unwrap().0)
+            cmd.entity(parent.get(*entity).unwrap().0)
                 .insert(Animator::new(rot_seq(ROT_TIME)));
-            commands.entity(*entity).insert(Animator::new(
+            cmd.entity(*entity).insert(Animator::new(
                 vis_seq(ROT_TIME, true).with_completed_event(true, *id as u64),
             ));
         }
     }
     for event in animate_evr.iter() {
         if let Some(entity) = board.flip_card(event.user_data as u8) {
-            commands.entity(*entity).insert(Open);
+            cmd.entity(*entity).insert(Open);
         }
     }
 }
@@ -130,7 +131,7 @@ pub fn deck_complete(
     board: ResMut<Board>,
     mut event: EventWriter<DeckCompletedEvent>,
     mut score: Query<(Entity, &mut Text, Option<&Animator<Transform>>), With<ScoreBoard>>,
-    cards: Query<(Entity, &Parent, &Children), With<Idx>>,
+    cards: Query<(Entity, &Parent), With<Idx>>,
     mut animate_evr: EventReader<TweenCompleted>,
 ) {
     if board.hidden_cards.is_empty() {
@@ -160,8 +161,7 @@ pub fn deck_complete(
                     .with_completed_event(true, std::u64::MAX),
                 ));
             let mut cycle = (15..27).cycle();
-            for (entity, parent, children) in cards.iter() {
-                println!("{:?}", children);
+            for (entity, parent) in cards.iter() {
                 [entity, parent.0]
                     .iter()
                     //.chain(**children.iter())

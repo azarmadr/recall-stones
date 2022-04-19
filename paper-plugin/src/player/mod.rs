@@ -7,7 +7,7 @@ use {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Panel {
-    pub opened: Vec<u16>,
+    pub opened: Vec<u8>,
     pub entity: Entity,
 }
 impl Panel {

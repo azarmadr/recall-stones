@@ -50,4 +50,3 @@ features = [
 [target.'cfg(target_arch = "wasm32")'.dependencies.getrandom]
 version="0.2"
 features=["js"]
-
