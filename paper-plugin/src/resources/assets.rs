@@ -22,7 +22,7 @@ impl SpriteMaterial {
         }
     }
     #[autodefault::autodefault]
-    pub fn node(&self,style: Style, transform: Transform) -> NodeBundle {
+    pub fn node(&self, style: Style, transform: Transform) -> NodeBundle {
         NodeBundle {
             style,
             transform,

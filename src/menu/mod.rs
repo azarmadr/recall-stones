@@ -13,15 +13,25 @@ fn despawn<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) 
 }
 
 #[derive(Component)]
+#[component(storage = "SparseSet")]
 struct MenuUI;
 #[derive(Component)]
+#[component(storage = "SparseSet")]
 struct MenuBoardOptions;
 #[autodefault]
 fn setup_menu(mut commands: Commands, materials: Res<MenuMaterials>) {
     // Make list of buttons
     let buttons: Vec<Vec<ResourceMap>> = vec![
         vec![Level(true).into(), "Level".into(), Level(false).into()],
-        vec![Human(true).into(), "Human".into(), Human(false).into(),"  |  \n  |  ".into(),Bot(true).into(), "Bot".into(), Bot(false).into()],
+        vec![
+            Human(true).into(),
+            "Human".into(),
+            Human(false).into(),
+            "  |  \n  |  ".into(),
+            Bot(true).into(),
+            "Bot".into(),
+            Bot(false).into(),
+        ],
         [Zebra, SameColor, AnyColor]
             .iter()
             .map(|x| ButtonAction::Mode(*x).into())
@@ -84,6 +94,7 @@ fn apply_options(
     }
 }
 #[derive(Component)]
+#[component(storage = "SparseSet")]
 struct UI;
 #[autodefault]
 fn setup_ui(

@@ -59,6 +59,7 @@ fn startup(mut commands: Commands, mut state: ResMut<State<AppState>>) {
     state.set(AppState::Menu).unwrap();
 }
 #[derive(Component)]
+#[component(storage = "SparseSet")]
 pub struct RestartTimer(Timer);
 /// Display Menu for 3 seconds before applying the set options
 fn restart_game_on_timer(

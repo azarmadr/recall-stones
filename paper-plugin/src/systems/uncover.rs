@@ -110,12 +110,12 @@ pub fn open_card(
     parent: Query<&Parent>,
 ) {
     for CardFlipEvent(id) in flip_card_evr.iter() {
-        if let Some(entity) = board.flip_card(**id) {
+        if let Some(entity) = board.flip_card(*id) {
             commands
                 .entity(parent.get(*entity).unwrap().0)
                 .insert(Animator::new(rot_seq(ROT_TIME)));
             commands.entity(*entity).insert(Animator::new(
-                vis_seq(ROT_TIME, true).with_completed_event(true, id.0 as u64),
+                vis_seq(ROT_TIME, true).with_completed_event(true, *id as u64),
             ));
         }
     }

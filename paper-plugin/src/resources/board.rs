@@ -58,16 +58,12 @@ impl Board {
         }
     }
     /// Translates a mouse position to board coordinates
-    pub fn mouse_position(&self, position: Vec2) -> Option<Idx> {
+    pub fn mouse_position(&self, position: Vec2) -> Option<u8> {
         if !self.in_bounds(position) {
             return None;
         }
         let coordinates = (position - self.board_position.xy()) / self.card_size;
-        Some(Idx::from2d(
-            coordinates.x as u8,
-            coordinates.y as u8,
-            self.deck.width() as u8,
-        ))
+        Some(coordinates.x as u8 + coordinates.y as u8 * self.deck.width() as u8)
     }
     #[inline]
     #[must_use]

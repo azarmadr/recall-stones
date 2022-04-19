@@ -1,13 +1,10 @@
 use {
     autodefault::autodefault,
-    bevy::{
-        ecs::schedule::StateData,
-        log, prelude::*
-    },
-    rand::{prelude::*,seq::index::sample},
+    bevy::{ecs::schedule::StateData, log, prelude::*},
+    player::*,
+    rand::{prelude::*, seq::index::sample},
     std::collections::HashMap,
     std::time::Duration,
-    player::*,
     {components::*, deck::Deck, tween::*},
 };
 pub use {components::ScoreBoard, events::*, resources::*};
@@ -18,23 +15,23 @@ use bevy_inspector_egui::RegisterInspectable;
 
 pub mod components;
 mod events;
+mod player;
 mod resources;
 mod systems;
-mod player;
 pub mod tween;
 
 #[derive(Component)]
+#[component(storage = "SparseSet")]
 struct InsertDeck;
 
 #[derive(Deref)]
 pub struct PaperPlugin<T>(pub T);
-impl<T: StateData+Copy> Plugin for PaperPlugin<T> {
+impl<T: StateData + Copy> Plugin for PaperPlugin<T> {
     fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_enter(**self)
                 .with_system(create_board.exclusive_system())
-                .with_system(spawn_cards)
-//                .with_system(create_mat),//mat
+                .with_system(spawn_cards), //                .with_system(create_mat),//mat
         )
         .add_system_set(
             SystemSet::on_update(**self)
@@ -53,7 +50,7 @@ impl<T: StateData+Copy> Plugin for PaperPlugin<T> {
         .add_system(component_animator_system::<Visibility>)
         .add_event::<CardFlipEvent>()
         .add_event::<DeckCompletedEvent>()
-//        .add_plugin(MatPlugin(**self)) //mat
+        //        .add_plugin(MatPlugin(**self)) //mat
         .init_resource::<BoardAssets>()
         .init_resource::<BoardOptions>();
         #[cfg(feature = "debug")]
@@ -102,15 +99,15 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
         .insert(InsertDeck)
         .id();
 
-        let player_panels = Panel::init(&mut cmd, options.players);
-        cmd.entity(player_panels[0].entity).insert(Turn);
+    let player_panels = Panel::init(&mut cmd, options.players);
+    cmd.entity(player_panels[0].entity).insert(Turn);
     cmd.insert_resource(Board {
         deck,
         card_size,
         board_position,
         hidden_cards,
         entity: board_entity,
-        player_panels
+        player_panels,
     })
 }
 //#[autodefault(except(Board))] //mat

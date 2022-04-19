@@ -1,11 +1,11 @@
-use std::cmp::*;
 use super::AppState;
 use autodefault::autodefault;
 use bevy::ecs::system::Resource;
 use bevy::prelude::*;
+use enum_dispatch::enum_dispatch;
 use paper_plugin::BoardOptions;
 pub use paper_plugin::Mode;
-use enum_dispatch::enum_dispatch;
+use std::cmp::*;
 
 pub type Act<T> = dyn Fn(&mut T) + Send + Sync + 'static;
 #[derive(Component)]
@@ -46,16 +46,16 @@ impl<T: Resource> SpawnButtonWithAction for ButtonAct<T> {
 }
 impl SpawnButtonWithAction for String {
     fn spawn_button(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
-        parent .spawn_bundle(button_text(materials, self));
+        parent.spawn_bundle(button_text(materials, self));
     }
 }
 #[enum_dispatch(SpawnButtonWithAction)]
-pub enum ResourceMap{
+pub enum ResourceMap {
     State(ButtonAct<State<AppState>>),
     Opts(ButtonAct<BoardOptions>),
     Text(String),
 }
-impl From<&str> for ResourceMap{
+impl From<&str> for ResourceMap {
     fn from(text: &str) -> ResourceMap {
         ResourceMap::Text(text.to_string())
     }
@@ -117,28 +117,58 @@ impl ButtonAction {
     }
     #[autodefault]
     pub fn into(self) -> ResourceMap {
-        let symbol = |x| if x {"+".to_string()} else {"-".to_string()};
-        let set = |i, x: u8, lb, ub|if i==true {min(x + 1, ub)}else{max(lb,x.saturating_sub(1))};
+        let symbol = |x| if x { "+".to_string() } else { "-".to_string() };
+        let set = |i, x: u8, lb, ub| {
+            if i == true {
+                min(x + 1, ub)
+            } else {
+                max(lb, x.saturating_sub(1))
+            }
+        };
         match self {
-            Apply => ResourceMap::State(ButtonAct::new(self.name(), |state: &mut State<AppState>| {
-                if *state.current() == AppState::Menu {
-                    state.overwrite_replace(AppState::InGame).unwrap();
-                }
-            })),
-            Save => ResourceMap::State(ButtonAct::new(self.name(), |state: &mut State<AppState>| {
-                if !state.inactives().is_empty() && *state.current() == AppState::Menu {
-                    state.overwrite_pop().unwrap();
-                }
-            })),
-            Menu => ResourceMap::State(ButtonAct::new(self.name(), |state: &mut State<AppState>| {
-                if *state.current() == AppState::InGame {
-                    state.overwrite_push(AppState::Menu).unwrap();
-                }
-            })),
-            Mode(x) => ResourceMap::Opts(ButtonAct::new(self.name(), move | opts: &mut BoardOptions | opts.mode = x)),
-            Level(x) => ResourceMap::Opts(ButtonAct::new(symbol(x),move   | opts: &mut BoardOptions | opts.level = set(x,opts.level,0,5))),
-            Human(x) => ResourceMap::Opts(ButtonAct::new(symbol(x), move  | opts: &mut BoardOptions | opts.players.0 = set(x,opts.players.0,1,2))),
-            Bot(x) => ResourceMap::Opts(ButtonAct::new(symbol(x),    move | opts: &mut BoardOptions | opts.players.1 = set(x,opts.players.1,0,1))),
+            Apply => ResourceMap::State(ButtonAct::new(
+                self.name(),
+                |state: &mut State<AppState>| {
+                    if *state.current() == AppState::Menu {
+                        state.overwrite_replace(AppState::InGame).unwrap();
+                    }
+                },
+            )),
+            Save => ResourceMap::State(ButtonAct::new(
+                self.name(),
+                |state: &mut State<AppState>| {
+                    if !state.inactives().is_empty() && *state.current() == AppState::Menu {
+                        state.overwrite_pop().unwrap();
+                    }
+                },
+            )),
+            Menu => ResourceMap::State(ButtonAct::new(
+                self.name(),
+                |state: &mut State<AppState>| {
+                    if *state.current() == AppState::InGame {
+                        state.overwrite_push(AppState::Menu).unwrap();
+                    }
+                },
+            )),
+            Mode(x) => ResourceMap::Opts(ButtonAct::new(
+                self.name(),
+                move |opts: &mut BoardOptions| opts.mode = x,
+            )),
+            Level(x) => {
+                ResourceMap::Opts(ButtonAct::new(symbol(x), move |opts: &mut BoardOptions| {
+                    opts.level = set(x, opts.level, 0, 5)
+                }))
+            }
+            Human(x) => {
+                ResourceMap::Opts(ButtonAct::new(symbol(x), move |opts: &mut BoardOptions| {
+                    opts.players.0 = set(x, opts.players.0, 1, 2)
+                }))
+            }
+            Bot(x) => {
+                ResourceMap::Opts(ButtonAct::new(symbol(x), move |opts: &mut BoardOptions| {
+                    opts.players.1 = set(x, opts.players.1, 0, 1)
+                }))
+            }
         }
     }
 }
@@ -234,7 +264,7 @@ pub fn button_text<S: Into<String>>(materials: &Res<MenuMaterials>, label: S) ->
             TextAlignment {
                 vertical: VerticalAlign::Center,
                 horizontal: HorizontalAlign::Center,
-            }
+            },
         ),
         ..Default::default()
     }

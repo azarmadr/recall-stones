@@ -1,15 +1,16 @@
 use bevy::prelude::*;
 pub use bevy_tweening::{lens::*, *};
 
-pub type Lerp<T> = dyn Fn(&mut T, &T, f32)+ Send + Sync + 'static;
+pub type Lerp<T> = dyn Fn(&mut T, &T, f32) + Send + Sync + 'static;
 pub struct BeTween<T> {
     lerp: Box<Lerp<T>>,
     start: Option<T>,
 }
 impl<T> BeTween<T> {
     /// Construct a lens from a pair of getter functions
-    pub fn  with_lerp<U>(lerp: U) -> Self
-        where U: Fn(&mut T, &T, f32)+ Send + Sync + 'static,
+    pub fn with_lerp<U>(lerp: U) -> Self
+    where
+        U: Fn(&mut T, &T, f32) + Send + Sync + 'static,
     {
         Self {
             lerp: Box::new(lerp),
@@ -43,12 +44,12 @@ pub fn rot_seq(duration: std::time::Duration) -> Sequence<Transform> {
     };
     tween(start, end).then(tween(end, start))
 }
-pub fn vis_seq(duration: std::time::Duration,show: bool) -> Tween<Visibility> {
+pub fn vis_seq(duration: std::time::Duration, show: bool) -> Tween<Visibility> {
     Tween::new(
         EaseFunction::QuadraticIn,
         TweeningType::Once,
         2 * duration,
-        BeTween::with_lerp(move |c: &mut Visibility, _, r| c.is_visible = show ^ (r<0.5))
+        BeTween::with_lerp(move |c: &mut Visibility, _, r| c.is_visible = show ^ (r < 0.5)),
     )
 }
 pub fn shake_seq(duration: std::time::Duration) -> Sequence<Transform> {
@@ -57,8 +58,9 @@ pub fn shake_seq(duration: std::time::Duration) -> Sequence<Transform> {
             EaseFunction::ElasticInOut,
             TweeningType::Once,
             duration * i / 3,
-            BeTween::with_lerp(move
-                |c: &mut Transform, s: &Transform, r: f32| c.translation = s.translation + x * r,)
+            BeTween::with_lerp(move |c: &mut Transform, s: &Transform, r: f32| {
+                c.translation = s.translation + x * r
+            }),
         )
     };
     Sequence::new((1..4).rev().map(|i| {
