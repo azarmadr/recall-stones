@@ -53,19 +53,20 @@ pub fn vis_seq(duration: std::time::Duration, show: bool) -> Tween<Visibility> {
     )
 }
 pub fn shake_seq(duration: std::time::Duration) -> Sequence<Transform> {
-    let tween = |x, i| {
+    let tween = |s, e, i| {
         Tween::new(
             EaseFunction::ElasticInOut,
             TweeningType::Once,
             duration * i / 3,
-            BeTween::with_lerp(move |c: &mut Transform, s: &Transform, r: f32| {
-                c.translation = s.translation + x * r
+            BeTween::with_lerp(move |c: &mut Transform, _, r| {
+                c.rotation = Quat::from_rotation_z(s + (e - s) * r)
             }),
         )
     };
+    let pi = std::f32::consts::PI;
     Sequence::new((1..4).rev().map(|i| {
-        tween(Vec3::X / 3. * i as f32, i)
-            .then(tween(Vec3::X / 3. * -2. * i as f32, i))
-            .then(tween(Vec3::X / 3. * i as f32, i))
+        tween(0., pi / 12. / i as f32, i)
+            .then(tween(-pi / 12. / i as f32, -pi / 12. / i as f32, i))
+            .then(tween(-pi / 12. / i as f32, 0., i))
     }))
 }

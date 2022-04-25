@@ -1,7 +1,10 @@
-use super::{Collection, Collection::*};
-use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::cmp::*;
+use {
+    super::{Collection, Collection::*, MatchRules::*, Mode},
+    crate::components::*,
+    bevy::prelude::*,
+    rand::{distributions::WeightedIndex, prelude::*},
+    serde::{Deserialize, Serialize},
+};
 
 /// Card size options
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,7 +22,7 @@ impl Default for CardSize {
     fn default() -> Self {
         Self::Adaptive {
             min: 10.0,
-            max: 50.0,
+            max: 30.0,
             window: (720., 480.),
         }
     }
@@ -31,59 +34,6 @@ pub enum BoardPosition {
     Centered { offset: Vec3 },
     /// Custom position
     Custom(Vec3),
-}
-/// Game Mode
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum Mode {
-    /// Pairs need only to be of same rank -- 2 == 2
-    AnyColor,
-    /// Pairs need to be of same rank and color -- 2red == 2red
-    SameColor,
-    /// Pairs need to be of same rank but color should be of opposite -- 2red == 2black
-    Zebra,
-    /// Pairs need to be of same rank and suite -- 2redHearts == 2redHearts
-    TwoDecks,
-    /// Pairs need to be of same rank and suite, cards have different backs for easy differentiation
-    CheckeredDeck,
-    /// Only once flip each turn
-    OneFlip,
-    /// Each turn can only flip from your half side of the deck
-    /// After each turn, roles are changed (first becomes second)
-    HalfPlate,
-    /// Deck arrangement - Circles or Trianles or any other
-    Fancy,
-    /// Deck arrangement - Duh Duh!
-    Spaghetti,
-    /// With numbers
-    Pexeso,
-}
-use Mode::*;
-impl Mode {
-    pub fn desc(&self) -> &str {
-        match self {
-            AnyColor => "Pairs need only to be of same rank",
-            SameColor => "Pairs need to be of same rank and color",
-            Zebra => "Pairs need to be of same rank but color should be of opposite",
-            TwoDecks => "Pairs need to be of same rank and suite",
-            CheckeredDeck => "Pairs need to be of same rank and suite,\ncards have different backs for easy differentiation",
-            OneFlip => "Only once flip each turn",
-            HalfPlate => "Each turn can only flip from your half side of the deck.\nAfter each turn, roles are changed",
-            Fancy => "Deck arrangement - Circles or Trianles or any other",
-            Spaghetti => "Deck arrangement - Duh Doy!",
-            Pexeso => "With numbers",
-        }
-    }
-    pub fn example(&self) -> &str {
-        match self {
-            AnyColor => "2 == 2",
-            SameColor => "2red == 2red",
-            Zebra => "2red == 2black",
-            TwoDecks => "2redHearts == 2redHearts",
-            CheckeredDeck => "2redHearts == 2redHearts",
-            HalfPlate => "Turn 1: first player starts; Turn 2: second player starts",
-            _ => "",
-        }
-    }
 }
 /// Board generation options. Must be used as a resource
 // We use serde to allow saving option presets and loading them at runtime
@@ -114,26 +64,30 @@ impl Default for BoardPosition {
 impl BoardOptions {
     fn default() -> Self {
         Self {
-            level: 3,
+            level: 0,
             couplets: 2,
             position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,
             collections: vec![
-                Clubs, Spades, Hearts, Diamonds, //Collection::Tel, Collection::Eng
+                Clubs, Hearts, Spades, Diamonds, //Collection::Tel, Collection::Eng
             ],
             //mode: AnyColor,
-            mode: Zebra,
-            players: (1, 0),
+            mode: Mode {
+                rule: Zebra,
+                combo: true,
+                full_plate: true,
+            },
+            players: (1, 1),
         }
     }
     /// Computes a card size that matches the window according to the card map size
-    pub fn card_size(&self, width: u8, height: u8) -> f32 {
+    pub fn card_size(&self, width: f32, height: f32) -> f32 {
         match self.card_size {
             CardSize::Fixed(v) => v,
             CardSize::Adaptive { min, max, window } => {
-                let max_width = window.0 / width as f32;
-                let max_heigth = window.1 / height as f32;
+                let max_width = window.0 / width;
+                let max_heigth = window.1 / height;
                 max_width.min(max_heigth).clamp(min, max)
             }
         }
@@ -153,15 +107,13 @@ impl BoardOptions {
             || self.collections.contains(&Diamonds)
     }
     pub fn deck_params(&self) -> (u8, u8, u8) {
-        let (deck_size, suite_size, ct_jump, mx_jump): (u8, u8, u8, u8) = match self.mode {
-            AnyColor => (3, 4, 5, 2),          //pairs 28,      uniq 14
-            SameColor | Zebra => (3, 8, 5, 4), //pairs 28,       uniq 28
-            TwoDecks => (6, 16, 10, 8),        //pairs & uniq 56
-            _ => (3, 4, 5, 2),
+        let (deck_size, ct_jump): (u8, u8) = match self.mode.rule {
+            TwoDecks => (6, 10), //pairs & uniq 56
+            _ => (3, 5),
         };
         (
             deck_size + self.level * ct_jump,
-            suite_size + self.level * mx_jump,
+            4 + self.level * 2,
             self.couplets,
         )
     }
@@ -170,6 +122,24 @@ impl BoardOptions {
             "Level: {}, Mode: {:?}, Humans: {}, Bots: {}",
             self.level, self.mode, self.players.0, self.players.1
         )
+    }
+    pub fn create_players(&self) -> Vec<Player> {
+        let mut weights = [self.players.0, self.players.1];
+        let mut players = vec![];
+        let mut rng = thread_rng();
+        let mut idx = 0u8;
+        while !weights.iter().all(|&x| x == 0) {
+            let dist = WeightedIndex::new(&weights).unwrap();
+            let choice = if idx == 0 { 0 } else { dist.sample(&mut rng) };
+            weights[choice] -= 1;
+            players.push(if choice == 1 {
+                Player::Bolts(Bolts(idx, 0))
+            } else {
+                Player::Flesh(Flesh(idx, 0))
+            });
+            idx += 1;
+        }
+        players
     }
 }
 impl FromWorld for BoardOptions {
@@ -180,7 +150,7 @@ impl FromWorld for BoardOptions {
         BoardOptions {
             card_size: CardSize::Adaptive {
                 min: 10.0,
-                max: 50.0,
+                max: 30.0,
                 window: (window.width(), window.height()),
             },
             ..BoardOptions::default()

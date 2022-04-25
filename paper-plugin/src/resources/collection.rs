@@ -1,6 +1,5 @@
-use crate::resources::{BoardAssets, Mode, Mode::*};
+use crate::resources::BoardAssets;
 use bevy::prelude::*;
-use bevy::text::Text2dSize;
 use serde::{Deserialize, Serialize};
 
 /// Collection specifying corresponing assets
@@ -16,33 +15,23 @@ pub enum Collection {
 }
 use Collection::*;
 impl Collection {
-    pub fn spawn_card(
-        &self,
-        val: u8,
-        assets: &Res<BoardAssets>,
-        max: u8,
-        size: f32,
-        mode: Mode,
-    ) -> Text2dBundle {
+    pub fn spawn(&self, val: u16, assets: &Res<BoardAssets>, max: u8, size: f32) -> TextBundle {
         let color = match self {
             Spades | Clubs => Color::BLACK,
             Hearts | Diamonds => Color::RED,
             _ => assets.card_color(val, max),
         };
         let value = match self {
-            Spades | Clubs | Hearts | Diamonds => char::from_digit(
-                match mode {
-                    SameColor | Zebra => val % (max / 2),
-                    TwoDecks | CheckeredDeck => val % (max / 4),
-                    _ => val,
-                } as u32,
-                14,
-            )
-            .unwrap()
-            .to_string(),
+            Spades | Clubs | Hearts | Diamonds => {
+                char::from_digit(val as u32 % 14, 14).unwrap().to_string()
+            }
             _ => val.to_string(),
         };
-        Text2dBundle {
+        TextBundle {
+            style: Style {
+                flex_basis: Val::Px(0.),
+                ..Default::default()
+            },
             text: Text {
                 sections: vec![TextSection {
                     value,
@@ -57,14 +46,7 @@ impl Collection {
                     horizontal: HorizontalAlign::Center,
                 },
             },
-            text_2d_size: Text2dSize {
-                size: Size {
-                    width: size,
-                    height: size,
-                },
-            },
             visibility: Visibility { is_visible: false },
-            transform: Transform::from_xyz(0., 0., 1.),
             ..Default::default()
         }
     }

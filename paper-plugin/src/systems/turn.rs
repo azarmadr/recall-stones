@@ -1,44 +1,77 @@
-use crate::components::*;
-use crate::events::*;
-//use crate::tween::*;
-use crate::Board;
-use bevy::prelude::*;
-//use std::time::Duration;
-use rand::seq::IteratorRandom;
+use {
+    crate::{components::*, Deck},
+    bevy::prelude::*,
+    rand::seq::IteratorRandom,
+};
 
-pub fn turn(
-    //mut cmd: Commands,
-    mut player: Query<(Entity, &mut Player), Added<Turn>>,
-) {
-    if let Ok((_entity, mut player)) = player.get_single_mut() {
-        player.inc_turn();
+#[derive(Deref, DerefMut)]
+pub struct AiTimer(Timer);
+impl Default for AiTimer {
+    fn default() -> Self {
+        AiTimer(Timer::from_seconds(1.5, false))
     }
 }
-#[derive(Component)]
-#[component(storage = "SparseSet")]
-pub struct AiTimer(Timer);
-pub fn ai(
-    mut cmd: Commands,
-    mut event: EventWriter<CardFlipEvent>,
-    player: Query<&Player, With<Turn>>,
+/// Whether the ai or human, get the index of the move and add `Open` Component to that entity
+pub fn turn(
+    mut players: Query<&mut Player>,
     time: Res<Time>,
-    board: Res<Board>,
-    mut query: Query<&mut AiTimer>,
+    mut timer: Local<AiTimer>,
+    mut deck: ResMut<Deck>,
+    mut cards: Query<(&mut Idx, &Interaction, ChangeTrackers<Interaction>)>,
 ) {
-    if let Ok(Player::Bolts(_)) = player.get_single() {
-        if query.is_empty() {
-            cmd.spawn().insert(AiTimer(Timer::from_seconds(1.5, false)));
-        } else {
-            let mut timer = query.single_mut();
-            if timer.0.tick(time.delta()).just_finished() {
-                let mut rng = rand::thread_rng();
-                if !board.hidden_cards.is_empty() {
-                    event.send(CardFlipEvent(
-                        *board.hidden_cards.keys().choose(&mut rng).unwrap(),
-                    ));
+    let mut player = players
+        .iter_mut()
+        .find(|pl| deck.next_player() == pl.deref().0)
+        .unwrap();
+    let mut rng = rand::thread_rng();
+
+    if let Some(mut id) = if player.is_bot() && timer.tick(time.delta()).just_finished() {
+        timer.reset();
+        cards
+            .iter_mut()
+            .filter_map(|(id, _, _)| {
+                if deck.is_available_move(id.0) {
+                    Some(id)
+                } else {
+                    None
                 }
-                timer.0.reset();
+            })
+            .choose(&mut rng)
+    } else {
+        cards.iter_mut().find_map(|(id, &flip, tracker)| {
+            if tracker.is_changed() && flip == Interaction::Clicked && deck.is_available_move(id.0)
+            {
+                Some(id)
+            } else {
+                None
             }
+        })
+    } {
+        player.inc_turn();
+        id.1 += 1;
+        deck.play(id.0);
+    };
+}
+pub fn score_board(
+    mut players: Query<(&Player, &mut Text, &Parent)>,
+    mut color: Query<&mut UiColor>,
+    deck: Res<Deck>,
+) {
+    for (player, mut text, parent) in players.iter_mut() {
+        let mut color = color.get_mut(parent.0).unwrap();
+        if deck.next_player() == player.deref().0 {
+            color.0 = Color::GREEN;
+        } else {
+            color.0 = Color::WHITE;
         }
+        text.sections[0].value = format!(
+            "{}\nOpened: {}\nTurns: {:?}\n{:?}",
+            if player.is_bot() { "Bot" } else { "Human" },
+            deck.iter()
+                .filter(|&&c| c / 128 == 1 + player.deref().0 as u16)
+                .count(),
+            player.deref().1,
+            player
+        );
     }
 }

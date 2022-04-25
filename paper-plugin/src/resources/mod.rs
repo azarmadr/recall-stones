@@ -1,7 +1,6 @@
-pub use {assets::*, board::*, collection::*, options::*};
+pub use {assets::*, collection::*, deck::*, options::*};
 
 mod assets;
-mod board;
 mod collection;
 pub(crate) mod deck;
 mod options;

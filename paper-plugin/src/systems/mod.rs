@@ -1,3 +1,3 @@
-pub mod input;
-pub mod turn;
-pub mod uncover;
+pub use {turn::*, uncover::*};
+mod turn;
+mod uncover;

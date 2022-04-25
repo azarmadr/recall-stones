@@ -22,10 +22,9 @@ impl SpriteMaterial {
         }
     }
     #[autodefault::autodefault]
-    pub fn node(&self, style: Style, transform: Transform) -> NodeBundle {
+    pub fn node(&self, style: Style) -> NodeBundle {
         NodeBundle {
             style,
-            transform,
             color: self.color.into(),
             image: self.texture.clone().into(),
         }
@@ -54,6 +53,7 @@ impl Default for SpriteMaterial {
 pub struct BoardAssets {
     pub board: SpriteMaterial,
     pub card: SpriteMaterial,
+    pub back_ground: SpriteMaterial,
     pub score_font: Handle<Font>,
     pub card_color: Vec<Color>,
     pub col_map: HashMap<Collection, HandleUntyped>,
@@ -64,6 +64,9 @@ impl FromWorld for BoardAssets {
         let world = world.cell();
         let asset_server = world.get_resource_mut::<AssetServer>().unwrap();
         BoardAssets {
+            back_ground: SpriteMaterial {
+                color: Color::rgba(0., 0., 0., 0.),
+            },
             board: SpriteMaterial {
                 color: Color::WHITE,
             },
@@ -95,8 +98,8 @@ impl FromWorld for BoardAssets {
 }
 impl BoardAssets {
     /// Safely retrieves the color matching a value
-    pub fn card_color(&self, val: u8, max: u8) -> Color {
-        let value = (val * self.card_color.len() as u8 / max).saturating_sub(1) as usize;
+    pub fn card_color(&self, val: u16, max: u8) -> Color {
+        let value = (val as usize * self.card_color.len() / max as usize).saturating_sub(1);
         match self.card_color.get(value) {
             Some(c) => *c,
             None => match self.card_color.last() {

@@ -54,9 +54,8 @@ fn main() {
 /// Pre launch setup of assets and options
 fn startup(mut commands: Commands, mut state: ResMut<State<AppState>>) {
     // Camera
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
-    state.set(AppState::Menu).unwrap();
+    state.set(AppState::InGame).unwrap();
 }
 #[derive(Component)]
 #[component(storage = "SparseSet")]

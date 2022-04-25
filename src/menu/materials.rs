@@ -4,7 +4,7 @@ use bevy::ecs::system::Resource;
 use bevy::prelude::*;
 use enum_dispatch::enum_dispatch;
 use paper_plugin::BoardOptions;
-pub use paper_plugin::Mode;
+pub use paper_plugin::MatchRules;
 use std::cmp::*;
 
 pub type Act<T> = dyn Fn(&mut T) + Send + Sync + 'static;
@@ -97,7 +97,7 @@ impl FromWorld for MenuMaterials {
 #[derive(Debug, Copy, Clone, PartialEq, Component)]
 pub enum ButtonAction {
     Level(bool),
-    Mode(Mode),
+    Mode(MatchRules),
     Human(bool),
     Bot(bool),
     Apply,
@@ -152,7 +152,7 @@ impl ButtonAction {
             )),
             Mode(x) => ResourceMap::Opts(ButtonAct::new(
                 self.name(),
-                move |opts: &mut BoardOptions| opts.mode = x,
+                move |opts: &mut BoardOptions| opts.mode.rule = x,
             )),
             Level(x) => {
                 ResourceMap::Opts(ButtonAct::new(symbol(x), move |opts: &mut BoardOptions| {
@@ -182,6 +182,7 @@ pub fn root(materials: &Res<MenuMaterials>) -> NodeBundle {
             ..Default::default()
         },
         color: materials.root.clone(),
+        transform: Transform::from_xyz(0., 0., 1.),
         ..Default::default()
     }
 }
