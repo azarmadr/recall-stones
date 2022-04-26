@@ -68,6 +68,7 @@ impl Deck {
                         .flat_map(|x| match mode.rule {
                             Zebra => [x, (x + 1) % 4],
                             SameColor => [x, (x + 2) % 4],
+                            TwoDecks | CheckeredDeck => [x,x],
                             _ => unreachable!(),
                         })
                         .map(|x| (x * 14 + card) as u16)
@@ -78,6 +79,10 @@ impl Deck {
         let mut map: Vec<u16> = cards.iter().enumerate().flat_map(map_func).collect();
         if mode.full_plate {
             map.shuffle(&mut rng);
+        } else {
+            map = map.iter().step_by(2).chain(map.iter().skip(1).step_by(2)).map(|&x|x).collect();
+            map[0..count as usize].shuffle(&mut rng);
+            map[count as usize..2*count as usize].shuffle(&mut rng);
         }
         Self {
             mode,

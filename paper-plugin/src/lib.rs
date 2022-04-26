@@ -151,16 +151,20 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
                     p.spawn_bundle(assets.board.node(Style {
                         min_size: Size {
                             width: Val::Px(size),
+                            height: Val::Px(size),
                         },
                     }))
                     .insert(Name::new(format!("Card: {}", i)))
                     .with_children(|p| {
                         p.spawn_bundle(assets.card.button(Style {
                             margin: Rect::all(Val::Px(1.0)),
-                            flex_basis: Val::Px(0.),
+                            min_size: Size {
+                                width: Val::Px(size),
+                                height: Val::Px(size),
+                            },
                         }))
                         .insert(Animator::new(seq(j)))
-                        .insert(Name::new(format!("Card {:?}", (i))))
+                        .insert(Name::new(format!("Card {:?}", i)))
                         .insert(id)
                         .with_children(|p| {
                             p.spawn_bundle(
