@@ -55,7 +55,7 @@ fn main() {
 fn startup(mut commands: Commands, mut state: ResMut<State<AppState>>) {
     // Camera
     commands.spawn_bundle(UiCameraBundle::default());
-    state.set(AppState::InGame).unwrap();
+    state.set(AppState::Menu).unwrap();
 }
 #[derive(Component)]
 #[component(storage = "SparseSet")]

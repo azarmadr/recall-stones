@@ -14,6 +14,7 @@ debug = ["paper-plugin/debug", "bevy-inspector-egui"]
 enum_dispatch = "0.3"
 autodefault = "2.0.0"
 paper-plugin = { path = "paper-plugin"}
+menu-plugin = {path = "menu-plugin"}
 # Hierarchy inspector debug
 
 [dependencies.bevy-inspector-egui]
@@ -46,6 +47,7 @@ features = ["x11"]
 
 [workspace]
 members = [ "paper-plugin",
+"menu-plugin",
 #"paper-plugin/mat"
 ]
 

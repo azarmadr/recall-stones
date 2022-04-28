@@ -1694,6 +1694,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "menu-plugin"
+version = "0.1.0"
+dependencies = [
+ "autodefault",
+ "bevy",
+ "enum_dispatch",
+]
+
+[[package]]
 name = "metal"
 version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2262,6 +2271,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "enum_dispatch",
+ "menu-plugin",
  "paper-plugin",
 ]
 
