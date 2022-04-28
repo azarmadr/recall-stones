@@ -1,5 +1,5 @@
 use {
-    super::{Collection, Collection::*, MatchRules::*, Mode},
+    super::{MatchRules::*, Mode},
     crate::components::*,
     bevy::prelude::*,
     rand::{distributions::WeightedIndex, prelude::*},
@@ -45,8 +45,6 @@ pub struct BoardOptions {
     pub card_size: CardSize,
     /// Padding between cards
     pub card_padding: f32,
-    /// Various collection from which cards are generated
-    pub collections: Vec<Collection>,
     /// Game Mode
     pub mode: Mode,
     pub level: u8,
@@ -69,10 +67,6 @@ impl BoardOptions {
             position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,
-            collections: vec![
-                Clubs, Hearts, Spades, Diamonds, //Collection::Tel, Collection::Eng
-            ],
-            //mode: AnyColor,
             mode: Mode {
                 rule: Zebra,
                 combo: true,
@@ -99,12 +93,6 @@ impl BoardOptions {
             }
             BoardPosition::Custom(p) => p,
         }
-    }
-    pub fn col_is_suites(&self) -> bool {
-        self.collections.contains(&Clubs)
-            || self.collections.contains(&Spades)
-            || self.collections.contains(&Hearts)
-            || self.collections.contains(&Diamonds)
     }
     pub fn deck_params(&self) -> (u8, u8, u8) {
         let (deck_size, ct_jump): (u8, u8) = match self.mode.rule {

@@ -24,7 +24,7 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
     // Make list of buttons
     let buttons: Vec<Vec<ResourceMap>> = vec![
         vec![Level.into(),Human.into(),Bot.into()],
-        [Zebra, SameColor, AnyColor]
+        [Zebra, TwoDecks, SameColor, AnyColor]
             .iter()
             .map(|x| ButtonAction::Mode(*x).into())
             .collect(),

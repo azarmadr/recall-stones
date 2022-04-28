@@ -87,7 +87,7 @@ pub fn hide_board(mut cmd: Commands, board: Query<Entity, With<Board>>) {
 /// System to generate the complete board
 #[autodefault(except(Board, TransformScaleLens))]
 pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<BoardAssets>) {
-    let (count, max, _) = options.deck_params();
+    let count = options.deck_params().0;
     let deck_width = (2. * count as f32).sqrt().round();
     let players = options.create_players();
     let deck = Deck::init(options.deck_params(), options.mode, players.len() as u8);
@@ -97,7 +97,6 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
         log::info!("{}", deck);
     }
     let width = (deck_width + 0.3) * (size + 2.);
-    let collections = &options.collections;
     let seq = |i| {
         Delay::new(Duration::from_millis(i as u64 * 81)).then(Tween::new(
             EaseFunction::BounceOut,
@@ -168,7 +167,7 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
                         .insert(id)
                         .with_children(|p| {
                             p.spawn_bundle(
-                                collections[card as usize / 14].spawn(card, &assets, max, size),
+                                assets.spawn_card(card, size),
                             )
                             .insert(Name::new("Card"));
                         });

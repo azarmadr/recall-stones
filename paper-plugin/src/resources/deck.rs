@@ -68,8 +68,9 @@ impl Deck {
                         .flat_map(|x| match mode.rule {
                             Zebra => [x, (x + 1) % 4],
                             SameColor => [x, (x + 2) % 4],
-                            TwoDecks | CheckeredDeck => [x,x],
-                            _ => unreachable!(),
+                            TwoDecks => [x,x],
+                            CheckeredDeck => [x,x+56],
+                            AnyColor => unreachable!(),
                         })
                         .map(|x| (x * 14 + card) as u16)
                         .collect()
