@@ -1,9 +1,8 @@
 name: Rust
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
+  push:
     branches: [ master ]
 
 env:
@@ -55,3 +54,29 @@ jobs:
           ITCH_GAME: recall-stones
           ITCH_USER: azarmadr
           PACKAGE: public
+
+  build-droid:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-build-android-${{ hashFiles('**/Cargo.toml') }}
+      - name: Uninstall android-31
+        run: $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --uninstall "platforms;android-31"
+      - name: Install Android targets
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi
+      - name: Install Cargo APK
+        run: cargo install --force cargo-apk
+      - name: Build APK
+        run: cargo apk build --release
+
