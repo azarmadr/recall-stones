@@ -15,6 +15,7 @@ enum Game {
 }
 
 /// Timer to help start another game after completing one
+#[bevy_main]
 fn main() {
     let mut app = App::new();
     app.insert_resource(WindowDescriptor {

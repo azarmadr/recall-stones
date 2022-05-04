@@ -79,4 +79,9 @@ jobs:
         run: cargo install --force cargo-apk
       - name: Build APK
         run: cargo apk build --release
+      - name: save target
+        uses: actions/upload-artifact@v3
+        with:
+          name: droid
+          path: target/release
 
