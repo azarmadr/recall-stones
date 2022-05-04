@@ -80,6 +80,8 @@ jobs:
       - name: Build APK
         run: cargo apk build --release
       - run: ls
+        if: failure()
       - uses: actions/upload-artifact@v3
+        if: failure()
         with:
           path: target
