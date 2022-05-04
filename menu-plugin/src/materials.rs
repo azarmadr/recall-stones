@@ -6,33 +6,34 @@ pub struct NamedBundle<T: Bundle> {
     node: T,
     name: Name,
 }
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 pub struct MenuMaterials {
-    pub none: UiColor,
-    pub root: UiColor,
-    pub menu: UiColor,
-    pub border: UiColor,
-    pub button: UiColor,
-    pub hovered: UiColor,
-    pub pressed: UiColor,
+    pub none: Color,
+    pub root: Color,
+    pub menu: Color,
+    pub border: Color,
+    pub button: Color,
+    pub hovered: Color,
+    pub pressed: Color,
     pub font: Handle<Font>,
-    pub button_border: UiColor,
-    pub button_text: UiColor,
+    pub button_border: Color,
+    pub button_text: Color,
 }
 impl FromWorld for MenuMaterials {
     fn from_world(world: &mut World) -> Self {
         let world = world.cell();
         let asset_server = world.get_resource_mut::<AssetServer>().unwrap();
         MenuMaterials {
-            none: Color::NONE.into(),
-            root: Color::rgba(0., 0., 0., 0.27).into(),
-            menu: Color::rgb(0.15, 0.15, 0.15).into(),
-            border: Color::rgb(0.65, 0.65, 0.65).into(),
-            button_border: Color::rgb(0.81, 0.65, 0.65).into(),
-            button: Color::rgb(0.15, 0.15, 0.15).into(),
-            hovered: Color::rgb(0.25, 0.25, 0.25).into(),
-            pressed: Color::rgb(0.35, 0.75, 0.35).into(),
+            none: Color::NONE,
+            root: Color::rgba(0., 0., 0., 0.27),
+            menu: Color::rgb(0.15, 0.15, 0.15),
+            border: Color::rgb(0.65, 0.65, 0.65),
+            button_border: Color::rgb(0.81, 0.65, 0.65),
+            button: Color::rgb(0.1, 0.15, 0.1),
+            hovered: Color::rgb(0.25, 0.25, 0.25),
+            pressed: Color::rgb(0.35, 0.75, 0.35),
             font: asset_server.load("fonts/FiraMono-Medium.ttf"),
-            button_text: Color::rgb(0.9, 0.9, 0.9).into(),
+            button_text: Color::rgb(0.9, 0.9, 0.9),
         }
     }
 }
@@ -45,11 +46,11 @@ impl MenuMaterials {
                     flex_direction: FlexDirection::ColumnReverse,
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
-                    ..Default::default()
+                    ..default()
                 },
-                color: self.root,
+                color: self.root.into(),
                 transform: Transform::from_xyz(0., 0., 1.),
-                ..Default::default()
+                ..default()
             },
             name: Name::new("Root"),
         }
@@ -61,10 +62,10 @@ impl MenuMaterials {
                     //size: Size::new(Val::Percent(100.), Val::Px(50.)),
                     border: Rect::all(Val::Px(3.0)),
                     flex_basis: Val::Px(0.),
-                    ..Default::default()
+                    ..default()
                 },
-                color: self.button_border,
-                ..Default::default()
+                color: self.button_border.into(),
+                ..default()
             },
             name: Name::new("Button Border"),
         }
@@ -76,10 +77,10 @@ impl MenuMaterials {
                     //size: Size::new(Val::Px(400.0), Val::Auto),
                     border: Rect::all(Val::Px(3.0)),
                     flex_basis: Val::Px(0.),
-                    ..Default::default()
+                    ..default()
                 },
-                color: self.border,
-                ..Default::default()
+                color: self.border.into(),
+                ..default()
             },
             name: Name::new("Border"),
         }
@@ -93,10 +94,10 @@ impl MenuMaterials {
                     align_items: AlignItems::Center,
                     border: Rect::all(Val::Px(3.0)),
                     flex_basis: Val::Px(0.),
-                    ..Default::default()
+                    ..default()
                 },
-                color: self.button,
-                ..Default::default()
+                color: self.button.into(),
+                ..default()
             },
             name: Name::new("Button"),
         }
@@ -111,10 +112,10 @@ impl MenuMaterials {
                     padding: Rect::all(Val::Px(5.0)),
                     flex_direction,
                     flex_basis: Val::Px(0.),
-                    ..Default::default()
+                    ..default()
                 },
-                color: self.menu,
-                ..Default::default()
+                color: self.menu.into(),
+                ..default()
             },
             name: Name::new("Menu Background"),
         }
@@ -141,7 +142,7 @@ impl MenuMaterials {
                     TextStyle {
                         font: self.font.clone(),
                         font_size: 25.0,
-                        color: self.button_text.0,
+                        color: self.button_text,
                     },
                     TextAlignment {
                         vertical: VerticalAlign::Center,

@@ -7,6 +7,7 @@ use {
 };
 
 /// Card size options
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CardSize {
     /// Fixed card size
@@ -27,44 +28,28 @@ impl Default for CardSize {
         }
     }
 }
-/// Board position customization options
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum BoardPosition {
-    /// Centered board
-    Centered { offset: Vec3 },
-    /// Custom position
-    Custom(Vec3),
-}
 /// Board generation options. Must be used as a resource
 // We use serde to allow saving option presets and loading them at runtime
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BoardOptions {
-    /// Board world position
-    pub position: BoardPosition,
+pub struct MemoryGOpts {
     /// Card world size
     pub card_size: CardSize,
     /// Padding between cards
     pub card_padding: f32,
     /// Game Mode
     pub mode: Mode,
+    #[cfg_attr(feature="debug",inspectable(min = 0, max = 5))]
     pub level: u8,
     pub couplets: u8,
+    //#[cfg_attr(feature="debug",inspectable(min = (1,0), max = (2,1)))]
     pub players: (u8, u8),
 }
-impl Default for BoardPosition {
-    fn default() -> Self {
-        Self::Centered {
-            offset: Default::default(),
-            //offset: Vec3::new(0., 25., 0.),
-        }
-    }
-}
-impl BoardOptions {
+impl MemoryGOpts {
     fn default() -> Self {
         Self {
             level: 0,
             couplets: 2,
-            position: Default::default(),
             card_size: Default::default(),
             card_padding: 3.,
             mode: Mode {
@@ -84,14 +69,6 @@ impl BoardOptions {
                 let max_heigth = window.1 / height;
                 max_width.min(max_heigth).clamp(min, max)
             }
-        }
-    }
-    pub fn board_position(&self, board_size: Vec2) -> Vec3 {
-        match self.position {
-            BoardPosition::Centered { offset } => {
-                Vec3::new(-(board_size.x / 2.), -(board_size.y / 2.), 0.) + offset
-            }
-            BoardPosition::Custom(p) => p,
         }
     }
     pub fn deck_params(&self) -> (u8, u8, u8) {
@@ -130,18 +107,18 @@ impl BoardOptions {
         players
     }
 }
-impl FromWorld for BoardOptions {
+impl FromWorld for MemoryGOpts {
     fn from_world(world: &mut World) -> Self {
         let world = world.cell();
         let windows = world.get_resource::<Windows>().unwrap();
         let window = windows.get_primary().unwrap();
-        BoardOptions {
+        MemoryGOpts {
             card_size: CardSize::Adaptive {
                 min: 10.0,
                 max: 30.0,
                 window: (window.width(), window.height()),
             },
-            ..BoardOptions::default()
+            ..MemoryGOpts::default()
         }
     }
 }

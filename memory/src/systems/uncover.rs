@@ -1,4 +1,4 @@
-use crate::{components::*, tween::*, BoardAssets, Deck, DeckCompletedEvent};
+use crate::{components::*, tween::*, MemoryGAssts, Deck, DeckCompletedEvent};
 use {bevy::prelude::*, std::time::Duration};
 
 const ROT_TIME: Duration = Duration::from_millis(81);
@@ -6,7 +6,7 @@ pub fn uncover(
     mut cmd: Commands,
     mut opened: Local<Vec<usize>>,
     deck: Res<Deck>,
-    assets: Res<BoardAssets>,
+    assets: Res<MemoryGAssts>,
     cards: Query<(Entity, &Idx)>,
     children: Query<&Children>,
 ) {
@@ -47,7 +47,11 @@ pub fn uncover(
         },
         ..default()
     };
-    if !deck_complete && deck.opened.len() != opened.len() || deck_complete && !opened.is_empty() {
+    if if deck_complete {
+        !opened.is_empty()
+    } else {
+        deck.opened.len() != opened.len()
+    } {
         if new_turn {
             opened.drain(..).for_each(|c| {
                 if !deck.is_revealed(c) {
@@ -128,7 +132,7 @@ pub fn deck_complete(
                     Tween::new(
                         EaseFunction::ElasticInOut,
                         TweeningType::Once,
-                        ROT_TIME * 81 * 3333,
+                        ROT_TIME * 81,
                         TextColorLens {
                             start: Color::WHITE,
                             end: Color::GREEN,

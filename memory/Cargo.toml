@@ -1,5 +1,5 @@
 [package]
-name = "paper-plugin"
+name = "memory"
 version = "0.1.0"
 authors = ["Shaik Azhar Madar <azarmadr@pm.me>"]
 edition = "2021"
@@ -17,6 +17,7 @@ autodefault = "2.0.0"
 duplicate = "0.4"
 enum_dispatch = "0.3"
 bevy_tweening = "0.4"
+menu-plugin = {path = "../menu-plugin"}
 #mat = {path = "mat"}
 
 # Console Debug
@@ -31,7 +32,7 @@ optional = true
 
 # Engine
 [dependencies.bevy]
-version = "0.7.*"
+version = "0.7"
 default-features = false
 features = [
   "bevy_render",        # Rendering framework core

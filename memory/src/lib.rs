@@ -4,6 +4,7 @@ use {
         ecs::schedule::{ShouldRun, StateData},
         prelude::*,
     },
+    menu::{ButtonAction, MenuPlugin},
     std::time::Duration,
     {components::*, deck::Deck, tween::*},
 };
@@ -15,13 +16,21 @@ pub use {
 
 //use mat::*;//mat
 #[cfg(feature = "debug")]
-use {bevy::log, bevy_inspector_egui::RegisterInspectable};
+use {bevy::log, bevy_inspector_egui::{WorldInspectorPlugin,InspectorPlugin}};
 
 pub mod components;
 mod events;
+mod menu;
 mod resources;
 mod systems;
 pub mod tween;
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum AppState {
+    InGame,
+    Menu,
+}
+use AppState::*;
 
 #[derive(Debug, Copy, Clone)]
 pub struct DeckCompletedEvent;
@@ -31,31 +40,40 @@ pub struct DeckCompletedEvent;
 pub struct Board;
 
 #[derive(Deref)]
-pub struct PaperPlugin<T>(pub T);
-impl<T: StateData + Copy> Plugin for PaperPlugin<T> {
+pub struct MemoryGamePlugin<T>(pub T);
+impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(**self).with_system(create_board))
+        app.add_state(AppState::Menu)
+            .add_plugin(TweeningPlugin)
+            .add_system_set(SystemSet::on_enter(InGame).with_system(create_board))
             .add_system_set(
-                SystemSet::on_update(**self)
+                SystemSet::on_update(InGame)
                     .with_system(systems::deck_complete.exclusive_system().at_end())
                     .with_system(systems::turn)
                     .with_system(systems::score_board),
             )
-            .add_system_set(SystemSet::on_in_stack_update(**self).with_system(systems::uncover))
-            .add_system_set(SystemSet::on_pause(**self).with_system(hide_board))
-            .add_system_set(SystemSet::on_resume(**self).with_system(show_board))
-            .add_system_set(SystemSet::on_exit(**self).with_system(despawn::<Board>))
+            .add_system_set(SystemSet::on_in_stack_update(InGame).with_system(systems::uncover))
+            .add_system_set(SystemSet::on_pause(InGame).with_system(hide_board))
+            .add_system_set(SystemSet::on_resume(InGame).with_system(show_board))
+            .add_system_set(SystemSet::on_exit(InGame).with_system(despawn::<Board>))
             .add_system(component_animator_system::<Visibility>)
+            .add_system(restart_game_on_timer)
+            .add_system(on_completion)
             .add_event::<DeckCompletedEvent>()
             //        .add_plugin(MatPlugin(**self)) //mat
-            .init_resource::<BoardAssets>()
-            .init_resource::<BoardOptions>();
+            .init_resource::<MemoryGAssts>()
+            .add_system(component_animator_system::<UiColor>)
+            .add_plugin(MenuPlugin {
+                game: InGame,
+                menu: Menu,
+            })
+            .init_resource::<MemoryGOpts>();
         #[cfg(feature = "debug")]
         {
-            app.register_inspectable::<Idx>()
-                .register_inspectable::<Open>()
-                .register_inspectable::<Revealed>();
-            log::info!("Loaded Board Plugin");
+            app.add_plugin(WorldInspectorPlugin::new())
+                .add_plugin(InspectorPlugin::<Deck>::new())
+                .add_plugin(InspectorPlugin::<MemoryGOpts>::new())
+                .add_plugin(InspectorPlugin::<MemoryGAssts>::new());
         }
     }
 }
@@ -86,7 +104,7 @@ pub fn hide_board(mut cmd: Commands, board: Query<Entity, With<Board>>) {
 }
 /// System to generate the complete board
 #[autodefault(except(Board, TransformScaleLens))]
-pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<BoardAssets>) {
+pub fn create_board(mut cmd: Commands, options: Res<MemoryGOpts>, assets: Res<MemoryGAssts>) {
     let count = options.deck_params().0;
     let deck_width = (2. * count as f32).sqrt().round();
     let players = options.create_players();
@@ -166,10 +184,8 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
                         .insert(Name::new(format!("Card {:?}", i)))
                         .insert(id)
                         .with_children(|p| {
-                            p.spawn_bundle(
-                                assets.spawn_card(card, size),
-                            )
-                            .insert(Name::new("Card"));
+                            p.spawn_bundle(assets.spawn_card(card, size))
+                                .insert(Name::new("Card"));
                         });
                     });
                 }
@@ -227,5 +243,55 @@ pub fn create_board(mut cmd: Commands, options: Res<BoardOptions>, assets: Res<B
 fn despawn<T: Component>(mut cmd: Commands, query: Query<Entity, With<T>>) {
     for entity in query.iter() {
         cmd.entity(entity).despawn_recursive();
+    }
+}
+fn restart_game_on_timer(
+    mut commands: Commands,
+    mut state: ResMut<State<AppState>>,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut RestartTimer)>,
+    buttons: Query<(Entity, &ButtonAction)>,
+) {
+    for (entity, mut timer) in query.iter_mut() {
+        if timer.0.tick(time.delta()).just_finished() {
+            if state.current() != &AppState::InGame {
+                state.replace(AppState::InGame).unwrap();
+            }
+            commands.entity(entity).despawn_recursive();
+        }
+        if timer.0.percent() < 0.027 {
+            for (entity, &button) in buttons.iter() {
+                if button == ButtonAction::Apply {
+                    commands
+                        .entity(entity)
+                        .insert(Animator::new(Tween::<UiColor>::new(
+                            EaseFunction::QuadraticIn,
+                            TweeningType::Once,
+                            std::time::Duration::from_secs(2),
+                            BeTween::with_lerp(|t: &mut UiColor, _, r| {
+                                t.0 = Vec4::from(Color::RED)
+                                    .lerp(Vec4::from(Color::GREEN), r)
+                                    .into()
+                            }),
+                        )));
+                }
+            }
+        }
+    }
+}
+#[derive(Component)]
+#[component(storage = "SparseSet")]
+pub struct RestartTimer(Timer);
+/// Display Menu for 3 seconds before applying the set options
+fn on_completion(
+    mut state: ResMut<State<AppState>>,
+    mut commands: Commands,
+    mut board_complete_evr: EventReader<DeckCompletedEvent>,
+) {
+    for _ev in board_complete_evr.iter() {
+        state.push(AppState::Menu).unwrap();
+        commands
+            .spawn()
+            .insert(RestartTimer(Timer::from_seconds(3., false)));
     }
 }

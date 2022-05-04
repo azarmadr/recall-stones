@@ -13,6 +13,7 @@ use {
 
 /// Game Modes
 /// Variants
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum MatchRules {
     /// Pairs need only to be of same rank -- 2 == 2
@@ -27,13 +28,18 @@ pub enum MatchRules {
     CheckeredDeck,
 }
 use MatchRules::*;
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Mode {
     pub rule: MatchRules,
     pub combo: bool,
     pub full_plate: bool,
 }
+impl Default for Mode {
+    fn default() -> Self{Self{rule:Zebra,combo:true,full_plate:true}}
+}
 /// Deck
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable,Default))]
 #[derive(Debug, Clone)]
 pub struct Deck {
     mode: Mode,

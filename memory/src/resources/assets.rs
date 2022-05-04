@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::render::texture::DEFAULT_IMAGE_HANDLE;
 
 /// Material of a `Sprite` with a texture and color
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Clone)]
 pub struct SpriteMaterial {
     pub color: Color,
@@ -47,20 +48,21 @@ impl Default for SpriteMaterial {
 /// Assets for the board. Must be used as a resource.
 ///
 /// Use the loader for partial setup
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Clone)]
-pub struct BoardAssets {
+pub struct MemoryGAssts {
     pub board: SpriteMaterial,
     pub card: SpriteMaterial,
     pub back_ground: SpriteMaterial,
     pub score_font: Handle<Font>,
     pub card_font: Handle<Font>,
 }
-impl FromWorld for BoardAssets {
-    #[autodefault::autodefault(except(BoardAssets))]
+impl FromWorld for MemoryGAssts {
+    #[autodefault::autodefault(except(MemoryGAssts))]
     fn from_world(world: &mut World) -> Self {
         let world = world.cell();
         let asset_server = world.get_resource_mut::<AssetServer>().unwrap();
-        BoardAssets {
+        MemoryGAssts {
             back_ground: SpriteMaterial {
                 color: Color::rgba(0., 0., 0., 0.),
             },
@@ -75,7 +77,7 @@ impl FromWorld for BoardAssets {
         }
     }
 }
-impl BoardAssets {
+impl MemoryGAssts {
     pub fn count_color(&self, val: u8) -> Color {
         match val {
             1 => Color::GREEN,

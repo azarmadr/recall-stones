@@ -6,17 +6,17 @@ edition = "2021"
 
 [features]
 default = []
-debug = ["paper-plugin/debug", "bevy-inspector-egui"]
+debug = ["menu-plugin/debug","memory/debug", "bevy-inspector-egui"]
 
 
 [dependencies]
 # bevy = { git = "https://github.com/bevyengine/bevy", rev = "b697e73c3d861c209152ccfb140ae00fbc6e9925", features = ["dynamic"] }
 enum_dispatch = "0.3"
 autodefault = "2.0.0"
-paper-plugin = { path = "paper-plugin"}
+memory = { path = "memory"}
 menu-plugin = {path = "menu-plugin"}
-# Hierarchy inspector debug
 
+# Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]
 version = "0.10"
 optional = true
@@ -41,9 +41,10 @@ default-features = false
 features = ["x11"]
 
 [workspace]
-members = [ "paper-plugin",
-"menu-plugin",
-#"paper-plugin/mat"
+members = [
+  "memory",
+  "menu-plugin",
+  #"paper-plugin/mat"
 ]
 
 # Enable optimizations for dependencies (incl. Bevy), but not for our code:

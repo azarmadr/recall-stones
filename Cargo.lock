@@ -1704,11 +1704,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "memory"
+version = "0.1.0"
+dependencies = [
+ "autodefault",
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy_tweening",
+ "colored",
+ "duplicate",
+ "enum_dispatch",
+ "getrandom",
+ "menu-plugin",
+ "rand",
+ "serde",
+]
+
+[[package]]
 name = "menu-plugin"
 version = "0.1.0"
 dependencies = [
  "autodefault",
  "bevy",
+ "bevy-inspector-egui",
+ "duplicate",
  "enum_dispatch",
 ]
 
@@ -2040,22 +2059,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "paper-plugin"
-version = "0.1.0"
-dependencies = [
- "autodefault",
- "bevy",
- "bevy-inspector-egui",
- "bevy_tweening",
- "colored",
- "duplicate",
- "enum_dispatch",
- "getrandom",
- "rand",
- "serde",
-]
-
-[[package]]
 name = "parking"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2281,8 +2284,8 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "enum_dispatch",
+ "memory",
  "menu-plugin",
- "paper-plugin",
 ]
 
 [[package]]

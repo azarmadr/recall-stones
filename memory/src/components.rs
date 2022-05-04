@@ -16,7 +16,6 @@ duplicate! {[
     [Revealed]      [Revealed];
 ]
     ///comment
-    #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
     #[derive(Debug, Copy, Clone, Component)]
     #[component(storage="SparseSet")]
     pub struct component_type;
