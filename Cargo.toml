@@ -1,8 +1,17 @@
 [package]
-name = "recall-stones"
+name = "recall_stones"
 version = "0.1.0"
 authors = ["Shaik Azhar Madar <azarmadr@pm.me>"]
 edition = "2021"
+
+[lib]
+name = "recall_stones"
+crate-type = "cdylib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
 
 [features]
 default = []
