@@ -79,7 +79,7 @@ jobs:
         run: cargo install --force cargo-apk
       - name: Build APK
         run: cargo apk build --release
-      - run: ls
+      - run: tree target -I '.fingerprint|build|deps|examples|incremental'
         if: failure()
       - uses: actions/upload-artifact@v3
         if: failure()
