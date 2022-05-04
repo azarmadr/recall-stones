@@ -79,6 +79,8 @@ jobs:
         run: cargo install --force cargo-apk
       - name: Build APK
         run: cargo apk build --release
+        env:
+          RUSTFLAGS: "--crate-type cdylib"
       - run: tree target -I '.fingerprint|build|deps|examples|incremental'
         if: failure()
       - uses: actions/upload-artifact@v3

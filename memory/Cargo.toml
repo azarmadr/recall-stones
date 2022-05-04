@@ -8,7 +8,7 @@ edition = "2021"
 
 [features]
 default = []
-debug = ["colored", "bevy-inspector-egui"]
+debug = ["bevy-inspector-egui"]
 
 [dependencies]
 serde = "1.0"
@@ -19,11 +19,6 @@ enum_dispatch = "0.3"
 bevy_tweening = "0.4"
 menu-plugin = {path = "../menu-plugin"}
 #mat = {path = "mat"}
-
-# Console Debug
-[dependencies.colored]
-version = "2.0"
-optional = true
 
 # Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]

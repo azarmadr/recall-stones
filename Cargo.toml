@@ -58,9 +58,6 @@ opt-level = 1
 strip = "debuginfo"
 lto = "thin"
 
-[target.'cfg(target_arch ="android")']
-crate-type = ["cdylib"]
-
 [package.metadata.android]
 apk_label = "Recall Stones"
 assets = "assets"
