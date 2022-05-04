@@ -3,8 +3,9 @@ name = "recall-stones"
 version = "0.1.0"
 authors = ["Shaik Azhar Madar <azarmadr@pm.me>"]
 edition = "2021"
-crate-type = ["cdylib"]
 
+[lib]
+crate-type = ["cdylib"]
 
 [features]
 default = []
