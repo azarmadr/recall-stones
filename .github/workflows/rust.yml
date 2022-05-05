@@ -85,3 +85,6 @@ jobs:
         if: failure()
         with:
           path: target
+      - uses: actions/upload-artifact@v3
+        with:
+          path: target/release/apk
