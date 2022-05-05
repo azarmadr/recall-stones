@@ -6,7 +6,6 @@ edition = "2021"
 
 [lib]
 name = "recall_stones"
-crate-type = "cdylib"
 path = "src/lib.rs"
 
 [[bin]]
@@ -66,6 +65,11 @@ opt-level = 1
 [profile.release]
 strip = "debuginfo"
 lto = "thin"
+
+[[example]]
+crate-type = ["cdylib"]
+name = "android"
+path = "src/main.rs"
 
 [package.metadata.android]
 apk_label = "Recall Stones"
