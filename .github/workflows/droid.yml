@@ -1,0 +1,83 @@
+name: Droid App
+
+on:
+  pull_request:
+  push:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-droid:
+    strategy:
+      fail-fast: false
+      matrix:
+        rust-target:
+          - 'armv7-linux-androideabi'
+          - 'aarch64-linux-android'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: ${{ matrix.rust-target }}
+          override: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-build-android-${{ matrix.rust-target }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Uninstall android-31
+        run: $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --uninstall "platforms;android-31"
+      - run: cargo install -f cargo-apk
+      - run: cargo apk build --target ${{ matrix.rust-target }} --example android
+      - run: tree target -I '.fingerprint|build|deps|examples|incremental'
+      - run: tree target -I '.fingerprint|build|deps|examples|incremental'
+        if: failure()
+      - uses: actions/upload-artifact@v3
+        with:
+          name: recall_stones_${{ matrix.os }}_${{ matrix.rust-target }}
+          path: target/**/apk/**/*.apk
+# build-droid:
+#   strategy:
+#     fail-fast: false
+#     matrix:
+#       os:  [ubuntu-latest]
+#       rust-channel: ['nightly']
+#       rust-target:
+#         - 'armv7-linux-androideabi'
+#         - 'aarch64-linux-android'
+#         - 'i686-linux-android'
+#         - 'x86_64-linux-android'
+#   runs-on: ${{ matrix.os }}
+#   name: Build apk
+
+#   steps:
+#   - uses: actions/checkout@v3
+#   - name: Installing Rust ${{ matrix.rust-channel }} w/ ${{ matrix.rust-target }}
+#     uses: actions-rs/toolchain@v1
+#     with:
+#       toolchain: ${{ matrix.rust-channel }}
+#       target: ${{ matrix.rust-target }}
+#       override: true
+
+#   - name: Install cargo-apk
+#     run:
+#       cargo install cargo-apk
+#   - name: Cargo apk build for target ${{ matrix.rust-target }}
+#     run: cargo apk build -r --target ${{ matrix.rust-target }} --example android
+
+#   - uses: actions/upload-artifact@v2
+#     # Only need this for CI, unless users are interested in downloading
+#     # a ready-made app that does nothing but printing "hello world".
+#     if: ${{ matrix.rust-target == 'x86_64-linux-android' }}
+#     name: Upload apk
+#     with:
+#       name: recall_stones_${{ matrix.os }}_${{ matrix.rust-target }}
+#       path: target/**/apk/*.apk

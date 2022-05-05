@@ -24,7 +24,6 @@ pub fn main() {
         height: 720.,
         ..Default::default()
     })
-    .insert_resource(Msaa { samples: 2 })
     .insert_resource(LogSettings {
         level: Level::INFO,
         ..Default::default()
