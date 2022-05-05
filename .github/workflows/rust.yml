@@ -80,11 +80,8 @@ jobs:
       - name: Build APK
         run: cargo apk build --example android
       - run: tree target -I '.fingerprint|build|deps|examples|incremental'
-        if: failure()
+        if: true
       - uses: actions/upload-artifact@v3
-        if: failure()
+        if: true
         with:
           path: target
-      - uses: actions/upload-artifact@v3
-        with:
-          path: target/release/apk
