@@ -121,10 +121,16 @@ impl MenuMaterials {
         }
     }
     pub fn menu_lr(&self) -> NamedBundle<NodeBundle> {
-        NamedBundle{name:Name::new("Menu Left-Right"),..self.menu_background(FlexDirection::RowReverse)}
+        NamedBundle {
+            name: Name::new("Menu Left-Right"),
+            ..self.menu_background(FlexDirection::RowReverse)
+        }
     }
     pub fn menu_td(&self) -> NamedBundle<NodeBundle> {
-        NamedBundle{name:Name::new("Menu Top-Down"),..self.menu_background(FlexDirection::ColumnReverse)}
+        NamedBundle {
+            name: Name::new("Menu Top-Down"),
+            ..self.menu_background(FlexDirection::ColumnReverse)
+        }
     }
     #[autodefault]
     pub fn button_text<S: Into<String>>(&self, label: S) -> NamedBundle<TextBundle> {

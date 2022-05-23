@@ -18,10 +18,7 @@ impl<T> BeTween<T> {
         }
     }
 }
-impl<T: Clone> Lens<T> for BeTween<T>
-where
-    T: Component,
-{
+impl<T: Clone > Lens<T> for BeTween<T> {
     fn lerp(&mut self, target: &mut T, ratio: f32) {
         if self.start.is_none() {
             self.start = Some(target.clone());

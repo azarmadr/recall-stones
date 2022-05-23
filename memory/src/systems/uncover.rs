@@ -1,7 +1,18 @@
-use crate::{components::*, tween::*, MemoryGAssts, Deck, DeckCompletedEvent};
+use crate::{components::*, tween::*, Deck, DeckCompletedEvent, MemoryGAssts};
 use {bevy::prelude::*, std::time::Duration};
 
 const ROT_TIME: Duration = Duration::from_millis(81);
+pub fn card_flip(
+    mut cards: Query<&mut UiColor, With<Idx>>,
+    vis: Query<(&Parent, &Visibility), With<Animator<Visibility>>>,
+    assets: Res<MemoryGAssts>,
+) {
+    vis.iter().for_each(|(&p, ref v)| {
+        if let Ok(mut c) = cards.get_mut(*p).as_mut() {
+            assets.flip_card_color(&mut c, v.is_visible);
+        }
+    });
+}
 pub fn uncover(
     mut cmd: Commands,
     mut opened: Local<Vec<usize>>,

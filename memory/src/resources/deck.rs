@@ -36,10 +36,16 @@ pub struct Mode {
     pub full_plate: bool,
 }
 impl Default for Mode {
-    fn default() -> Self{Self{rule:Zebra,combo:true,full_plate:true}}
+    fn default() -> Self {
+        Self {
+            rule: Zebra,
+            combo: true,
+            full_plate: true,
+        }
+    }
 }
 /// Deck
-#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable,Default))]
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable, Default))]
 #[derive(Debug, Clone)]
 pub struct Deck {
     mode: Mode,
@@ -52,9 +58,13 @@ impl Deck {
     /// Randomize couplets till max count and initialize them in the Deck
     pub fn init((count, max, _couplets): (u8, u8, u8), mode: Mode, players: u8) -> Self {
         let mut rng = rand::thread_rng();
-        let mut cards = vec![2; max.into()];
+        let suites = match mode.rule {
+            TwoDecks | CheckeredDeck => 4,
+            _ => 2,
+        };
+        let mut cards = vec![suites as usize; max.into()];
         let mut dist = WeightedIndex::new(&vec![1; max.into()]).unwrap();
-        for _ in 0..(2 * max - count) {
+        for _ in 0..(suites * max - count) {
             let idx = dist.sample(&mut rng);
             cards[idx] -= 1;
             if cards[idx] == 0 {
@@ -63,23 +73,31 @@ impl Deck {
         }
         let map_func = |(card, count): (usize, &usize)| -> Vec<u16> {
             {
-                if *count != 1 || mode.rule == AnyColor {
-                    sample(&mut rng, 4, count * 2)
+                match mode.rule {
+                    AnyColor => sample(&mut rng, 4, count * 2)
                         .iter()
                         .map(|x| (x * 14 + card) as u16)
-                        .collect()
-                } else {
-                    sample(&mut rng, 4, 1)
+                        .collect(),
+                    SameColor | Zebra => sample(&mut rng, 4, 1)
                         .iter()
-                        .flat_map(|x| match mode.rule {
-                            Zebra => [x, (x + 1) % 4],
-                            SameColor => [x, (x + 2) % 4],
-                            TwoDecks => [x,x],
-                            CheckeredDeck => [x,x+56],
-                            AnyColor => unreachable!(),
+                        .flat_map(|x| {
+                            (0..count * 2)
+                                .map(|i| {
+                                    if mode.rule == Zebra {
+                                        (i + x) % 4
+                                    } else {
+                                        i % 2 * 2 + if (i < 2) ^ (x < 2) { 0 } else { 1 }
+                                    }
+                                })
+                                .collect::<Vec<usize>>()
                         })
                         .map(|x| (x * 14 + card) as u16)
-                        .collect()
+                        .collect(),
+                    TwoDecks | CheckeredDeck => sample(&mut rng, 4, *count)
+                        .iter()
+                        .flat_map(|x| [x, if mode.rule == TwoDecks { x } else { x + 4 }])
+                        .map(|x| (x * 14 + card) as u16)
+                        .collect(),
                 }
             }
         };
@@ -87,9 +105,14 @@ impl Deck {
         if mode.full_plate {
             map.shuffle(&mut rng);
         } else {
-            map = map.iter().step_by(2).chain(map.iter().skip(1).step_by(2)).map(|&x|x).collect();
+            map = map
+                .iter()
+                .step_by(2)
+                .chain(map.iter().skip(1).step_by(2))
+                .map(|&x| x)
+                .collect();
             map[0..count as usize].shuffle(&mut rng);
-            map[count as usize..2*count as usize].shuffle(&mut rng);
+            map[count as usize..2 * count as usize].shuffle(&mut rng);
         }
         Self {
             mode,
@@ -107,7 +130,7 @@ impl Deck {
         match self.mode.rule {
             AnyColor => eq,
             Zebra => eq && (l / 14 ^ r / 14 != 2),
-            SameColor => eq && l / 14 == r / 14,
+            SameColor => eq && l / 14 % 2 == r / 14 % 2,
             TwoDecks => l == r,
             CheckeredDeck => l % 56 == r % 56,
         }

@@ -52,7 +52,7 @@ impl Default for SpriteMaterial {
 #[derive(Debug, Clone)]
 pub struct MemoryGAssts {
     pub board: SpriteMaterial,
-    pub card: SpriteMaterial,
+    pub card: [(SpriteMaterial, SpriteMaterial); 2],
     pub back_ground: SpriteMaterial,
     pub score_font: Handle<Font>,
     pub card_font: Handle<Font>,
@@ -67,11 +67,26 @@ impl FromWorld for MemoryGAssts {
                 color: Color::rgba(0., 0., 0., 0.),
             },
             board: SpriteMaterial {
-                color: Color::WHITE,
+                color: Color::rgb_u8(112, 112, 255),
             },
-            card: SpriteMaterial {
-                color: Color::DARK_GRAY,
-            },
+            card: [
+                (
+                    SpriteMaterial {
+                        color: Color::rgb_u8(130, 87, 38),
+                    },
+                    SpriteMaterial {
+                        color: Color::rgb_u8(255, 200, 155),
+                    },
+                ),
+                (
+                    SpriteMaterial {
+                        color: Color::rgb_u8(4, 86, 46),
+                    },
+                    SpriteMaterial {
+                        color: Color::rgb_u8(205, 245, 218),
+                    },
+                ),
+            ],
             score_font: asset_server.load("fonts/FiraMono-Medium.ttf"),
             card_font: asset_server.load("fonts/Dicier-Cards.ttf"), //card_font: asset_server.load("fonts/pixeled.ttf")
         }
@@ -100,7 +115,9 @@ impl MemoryGAssts {
             },
             text: Text {
                 sections: vec![TextSection {
-                    value: std::char::from_u32(33 + val as u32).unwrap().to_string(),
+                    value: std::char::from_u32(33 + val as u32 % 56)
+                        .unwrap()
+                        .to_string(),
                     style: TextStyle {
                         color,
                         font: self.card_font.clone(),
@@ -115,5 +132,27 @@ impl MemoryGAssts {
             visibility: Visibility { is_visible: false },
             ..Default::default()
         }
+    }
+    pub fn flip_card_color(&self, mut color: &mut UiColor, visibility: bool) {
+        color.0 = match visibility {
+            true => {
+                if color.0 == self.card[0].0.color {
+                    self.card[0].1.color
+                } else if color.0 == self.card[1].0.color {
+                    self.card[1].1.color
+                } else {
+                    color.0
+                }
+            }
+            false => {
+                if color.0 == self.card[0].1.color {
+                    self.card[0].0.color
+                } else if color.0 == self.card[1].1.color {
+                    self.card[1].0.color
+                } else {
+                    color.0
+                }
+            }
+        };
     }
 }

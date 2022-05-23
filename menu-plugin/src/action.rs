@@ -55,19 +55,16 @@ impl<T: Resource> ActionSpawner for Vol<T> {
         let m = f.clone();
         let t = f.clone();
         parent
-            .spawn_bundle(materials.button_border())
+            .spawn_bundle(materials.menu_td())
             .with_children(|p| {
-                p.spawn_bundle(materials.menu_td())
-                    .with_children(|p| {
-                        Action::new("+".to_string(), move |o: &mut T| (f.action)(o, true))
-                            .spawn(p, materials);
-                        p.spawn_bundle(materials.button_text("".to_string()))
-                            .insert(LabelText::new(move |o: &T| (t.label)(o)));
-                        Action::new("-".to_string(), move |o: &mut T| (m.action)(o, false))
-                            .spawn(p, materials);
-                    })
-                    .insert(Name::new("Volume Buttons"));
-            });
+                Action::new("+".to_string(), move |o: &mut T| (f.action)(o, true))
+                    .spawn(p, materials);
+                p.spawn_bundle(materials.button_text("".to_string()))
+                    .insert(LabelText::new(move |o: &T| (t.label)(o)));
+                Action::new("-".to_string(), move |o: &mut T| (m.action)(o, false))
+                    .spawn(p, materials);
+            })
+            .insert(Name::new("Volume Buttons"));
     }
 }
 impl<T: Resource> ActionSpawner for Action<T> {

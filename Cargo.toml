@@ -59,7 +59,11 @@ strip = "debuginfo"
 lto = "thin"
 
 [[example]]
-crate-type = ["cdylib"]
+name = "xp"
+path = "src/xp.rs"
+
+[[example]]
+crate-type = ["lib", "cdylib"]
 name = "android"
 path = "src/main.rs"
 
@@ -73,11 +77,6 @@ apk_name = "Recall Stones"
 min_sdk_version = 16
 target_sdk_version = 29
 max_sdk_version = 29
-
-[[package.metadata.android.uses_feature]]
-name = "android.hardware.vulkan.level"
-required = true
-version = 1
 
 [package.metadata.android.application]
 debuggable = false

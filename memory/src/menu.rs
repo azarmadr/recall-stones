@@ -1,10 +1,10 @@
 use {
-    bevy::{ecs::schedule::StateData, prelude::*},
-    std::cmp::*,
-    enum_dispatch::enum_dispatch,
-    super::{AppState,MemoryGOpts, ScoreBoard,MatchRules, MatchRules::*},
-    menu_plugin::*,
+    super::{AppState, MatchRules, MatchRules::*, MemoryGOpts, ScoreBoard},
     autodefault::autodefault,
+    bevy::{ecs::schedule::StateData, prelude::*},
+    enum_dispatch::enum_dispatch,
+    menu_plugin::*,
+    std::cmp::*,
 };
 
 #[enum_dispatch]
@@ -26,10 +26,10 @@ impl From<&str> for ResourceMap {
 impl ActionSpawner for ResourceMap {
     fn spawn(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
         match self {
-            StateRes(x)  => x.spawn(parent,materials),
-            Opts(x)   => x.spawn(parent,materials),
-            VolButton(x)    => x.spawn(parent,materials),
-            LabelText(x)   => x.spawn(parent,materials),
+            StateRes(x) => x.spawn(parent, materials),
+            Opts(x) => x.spawn(parent, materials),
+            VolButton(x) => x.spawn(parent, materials),
+            LabelText(x) => x.spawn(parent, materials),
         }
     }
 }
@@ -85,11 +85,9 @@ impl ButtonAction {
                     state.overwrite_push(AppState::Menu).unwrap();
                 }
             })),
-            Mode(x) => {
-                Opts(Action::new(self.name(), move |opts: &mut MemoryGOpts| {
-                    opts.mode.rule = x
-                }))
-            }
+            Mode(x) => Opts(Action::new(self.name(), move |opts: &mut MemoryGOpts| {
+                opts.mode.rule = x
+            })),
             Level => VolButton(Vol::new(
                 |o: &MemoryGOpts| format!("Level: {}", o.level),
                 move |opts: &mut MemoryGOpts, x| opts.level = set(x, opts.level, 0, 5),
@@ -117,7 +115,7 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
     // Make list of buttons
     let buttons: Vec<Vec<ResourceMap>> = vec![
         vec![Level.into(), Human.into(), Bot.into()],
-        [Zebra, TwoDecks, SameColor, AnyColor]
+        [CheckeredDeck, TwoDecks, Zebra, SameColor, AnyColor]
             .iter()
             .map(|x| ButtonAction::Mode(*x).into())
             .collect(),

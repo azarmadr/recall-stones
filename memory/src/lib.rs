@@ -5,6 +5,7 @@ use {
         prelude::*,
     },
     menu::{ButtonAction, MenuPlugin},
+    rand::seq::SliceRandom,
     std::time::Duration,
     {components::*, deck::Deck, tween::*},
 };
@@ -14,9 +15,8 @@ pub use {
     resources::*,
 };
 
-//use mat::*;//mat
 #[cfg(feature = "debug")]
-use {bevy::log, bevy_inspector_egui::{WorldInspectorPlugin,InspectorPlugin}};
+use {bevy::log, bevy_inspector_egui::InspectorPlugin};
 
 pub mod components;
 mod events;
@@ -52,7 +52,11 @@ impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
                     .with_system(systems::turn)
                     .with_system(systems::score_board),
             )
-            .add_system_set(SystemSet::on_in_stack_update(InGame).with_system(systems::uncover))
+            .add_system_set(
+                SystemSet::on_in_stack_update(InGame)
+                    .with_system(systems::uncover)
+                    .with_system(systems::card_flip),
+            )
             .add_system_set(SystemSet::on_pause(InGame).with_system(hide_board))
             .add_system_set(SystemSet::on_resume(InGame).with_system(show_board))
             .add_system_set(SystemSet::on_exit(InGame).with_system(despawn::<Board>))
@@ -60,7 +64,6 @@ impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
             .add_system(restart_game_on_timer)
             .add_system(on_completion)
             .add_event::<DeckCompletedEvent>()
-            //        .add_plugin(MatPlugin(**self)) //mat
             .init_resource::<MemoryGAssts>()
             .add_system(component_animator_system::<UiColor>)
             .add_plugin(MenuPlugin {
@@ -70,8 +73,7 @@ impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
             .init_resource::<MemoryGOpts>();
         #[cfg(feature = "debug")]
         {
-            app.add_plugin(WorldInspectorPlugin::new())
-                .add_plugin(InspectorPlugin::<Deck>::new())
+            app.add_plugin(InspectorPlugin::<Deck>::new())
                 .add_plugin(InspectorPlugin::<MemoryGOpts>::new())
                 .add_plugin(InspectorPlugin::<MemoryGAssts>::new());
         }
@@ -104,7 +106,13 @@ pub fn hide_board(mut cmd: Commands, board: Query<Entity, With<Board>>) {
 }
 /// System to generate the complete board
 #[autodefault(except(Board, TransformScaleLens))]
-pub fn create_board(mut cmd: Commands, options: Res<MemoryGOpts>, assets: Res<MemoryGAssts>) {
+pub fn create_board(
+    mut cmd: Commands,
+    options: Res<MemoryGOpts>,
+    mut assets: ResMut<MemoryGAssts>,
+) {
+    let mut rng = rand::thread_rng();
+    assets.card.shuffle(&mut rng);
     let count = options.deck_params().0;
     let deck_width = (2. * count as f32).sqrt().round();
     let players = options.create_players();
@@ -171,15 +179,17 @@ pub fn create_board(mut cmd: Commands, options: Res<MemoryGOpts>, assets: Res<Me
                             height: Val::Px(size),
                         },
                     }))
-                    .insert(Name::new(format!("Card: {}", i)))
+                    .insert(Name::new("Board Color"))
                     .with_children(|p| {
-                        p.spawn_bundle(assets.card.button(Style {
-                            margin: Rect::all(Val::Px(1.0)),
-                            min_size: Size {
-                                width: Val::Px(size),
-                                height: Val::Px(size),
+                        p.spawn_bundle(assets.card[if card > 55 { 1 } else { 0 }].0.button(
+                            Style {
+                                margin: Rect::all(Val::Px(1.0)),
+                                min_size: Size {
+                                    width: Val::Px(size),
+                                    height: Val::Px(size),
+                                },
                             },
-                        }))
+                        ))
                         .insert(Animator::new(seq(j)))
                         .insert(Name::new(format!("Card {:?}", i)))
                         .insert(id)

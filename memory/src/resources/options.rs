@@ -39,7 +39,7 @@ pub struct MemoryGOpts {
     pub card_padding: f32,
     /// Game Mode
     pub mode: Mode,
-    #[cfg_attr(feature="debug",inspectable(min = 0, max = 5))]
+    #[cfg_attr(feature = "debug", inspectable(min = 0, max = 5))]
     pub level: u8,
     pub couplets: u8,
     //#[cfg_attr(feature="debug",inspectable(min = (1,0), max = (2,1)))]
@@ -73,7 +73,7 @@ impl MemoryGOpts {
     }
     pub fn deck_params(&self) -> (u8, u8, u8) {
         let (deck_size, ct_jump): (u8, u8) = match self.mode.rule {
-            TwoDecks => (6, 10), //pairs & uniq 56
+            TwoDecks | CheckeredDeck => (6, 10), //pairs & uniq 56
             _ => (3, 5),
         };
         (
