@@ -3,7 +3,7 @@ use {autodefault::autodefault, bevy::prelude::*};
 #[derive(Default, Bundle)]
 pub struct NamedBundle<T: Bundle> {
     #[bundle]
-    node: T,
+    pub node: T,
     name: Name,
 }
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]

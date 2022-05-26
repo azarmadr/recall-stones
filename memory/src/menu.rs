@@ -15,6 +15,7 @@ pub enum ResourceMap {
     StateRes(Action<State<AppState>>),
     Opts(Action<MemoryGOpts>),
     VolButton(Vol<MemoryGOpts>),
+    Check(CheckBox<MemoryGOpts>),
     LabelText(String),
 }
 use ResourceMap::*;
@@ -29,6 +30,7 @@ impl ActionSpawner for ResourceMap {
             StateRes(x) => x.spawn(parent, materials),
             Opts(x) => x.spawn(parent, materials),
             VolButton(x) => x.spawn(parent, materials),
+            Check(x) => x.spawn(parent, materials),
             LabelText(x) => x.spawn(parent, materials),
         }
     }
@@ -48,6 +50,8 @@ pub enum ButtonAction {
     Mode(MatchRules),
     Human,
     Bot,
+    FullPlate,
+    Combo,
     Apply,
     Save,
     Menu,
@@ -100,6 +104,16 @@ impl ButtonAction {
                 |o: &MemoryGOpts| format!("Bot: {}", o.players.1),
                 move |opts: &mut MemoryGOpts, x| opts.players.1 = set(x, opts.players.1, 0, 1),
             )),
+            FullPlate => Check(CheckBox::new(
+                self.name(),
+                |o: &MemoryGOpts| o.mode.full_plate,
+                |o: &mut MemoryGOpts| &mut o.mode.full_plate,
+            )),
+            Combo => Check(CheckBox::new(
+                self.name(),
+                |o: &MemoryGOpts| o.mode.combo,
+                |o: &mut MemoryGOpts| &mut o.mode.combo,
+            )),
         }
     }
 }
@@ -119,26 +133,29 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
             .iter()
             .map(|x| ButtonAction::Mode(*x).into())
             .collect(),
+        vec![ButtonAction::FullPlate.into(), ButtonAction::Combo.into()],
         vec![ButtonAction::Apply.into(), ButtonAction::Save.into()],
     ];
     let p = |parent: &mut ChildBuilder| {
         for lr in buttons {
-            parent
-                .spawn_bundle(materials.menu_lr())
-                .with_children(|parent| {
-                    for button in lr {
-                        button.spawn(parent, &materials)
-                    }
-                });
+            let mut menu = materials.menu_lr();
+            menu.node.style.flex_wrap = FlexWrap::Wrap;
+            parent.spawn_bundle(menu).with_children(|parent| {
+                for button in lr {
+                    button.spawn(parent, &materials)
+                }
+            });
         }
     };
+    let mut menu_border = materials.border();
+    menu_border.node.style.max_size.width = Val::Percent(81.);
     cmd
         .spawn_bundle(materials.root())
         .insert(MenuUI)
         .insert(Name::new("MenuUI"))
         .with_children(|parent| {
             parent
-                .spawn_bundle(materials.border())
+                .spawn_bundle(menu_border)
                 .with_children(|parent| {
                     parent
                         .spawn_bundle(materials.menu_td())

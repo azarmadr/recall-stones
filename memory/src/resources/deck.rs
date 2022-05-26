@@ -56,7 +56,7 @@ pub struct Deck {
 }
 impl Deck {
     /// Randomize couplets till max count and initialize them in the Deck
-    pub fn init((count, max, _couplets): (u8, u8, u8), mode: Mode, players: u8) -> Self {
+    pub fn init((count, max): (u8, u8), mode: Mode, players: u8) -> Self {
         let mut rng = rand::thread_rng();
         let suites = match mode.rule {
             TwoDecks | CheckeredDeck => 4,

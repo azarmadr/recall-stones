@@ -106,18 +106,14 @@ pub fn hide_board(mut cmd: Commands, board: Query<Entity, With<Board>>) {
 }
 /// System to generate the complete board
 #[autodefault(except(Board, TransformScaleLens))]
-pub fn create_board(
-    mut cmd: Commands,
-    options: Res<MemoryGOpts>,
-    mut assets: ResMut<MemoryGAssts>,
-) {
+pub fn create_board(mut cmd: Commands, opts: Res<MemoryGOpts>, mut assets: ResMut<MemoryGAssts>) {
     let mut rng = rand::thread_rng();
     assets.card.shuffle(&mut rng);
-    let count = options.deck_params().0;
+    let count = opts.deck_params().0;
     let deck_width = (2. * count as f32).sqrt().round();
-    let players = options.create_players();
-    let deck = Deck::init(options.deck_params(), options.mode, players.len() as u8);
-    let size = options.card_size(deck_width, deck_width);
+    let players = opts.create_players();
+    let deck = Deck::init(opts.deck_params(), opts.mode, players.len() as u8);
+    let size = opts.card_size(deck_width, deck_width);
     #[cfg(feature = "debug")]
     {
         log::info!("{}", deck);
@@ -160,9 +156,11 @@ pub fn create_board(
                 margin: if half == 0 {
                     Rect {
                         top: Val::Px(width / 2.),
+                        bottom: Val::Px(if opts.mode.full_plate { 0. } else { 3. }),
                     }
                 } else {
                     Rect {
+                        top: Val::Px(if opts.mode.full_plate { 0. } else { 3. }),
                         bottom: Val::Px(width / 2.),
                     }
                 },
@@ -292,7 +290,7 @@ fn restart_game_on_timer(
 #[derive(Component)]
 #[component(storage = "SparseSet")]
 pub struct RestartTimer(Timer);
-/// Display Menu for 3 seconds before applying the set options
+/// Display Menu for 3 seconds before applying the set opts
 fn on_completion(
     mut state: ResMut<State<AppState>>,
     mut commands: Commands,

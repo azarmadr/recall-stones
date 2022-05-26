@@ -46,6 +46,25 @@ impl<T: Resource> Vol<T> {
         }
     }
 }
+pub struct CheckBox<T> {
+    name: String,
+    lens_m: Box<dyn Fn(&mut T) -> &mut bool + Send + Sync + 'static>,
+    lens: Box<dyn Fn(&T) -> bool + Send + Sync + 'static>,
+}
+impl<T: Resource> CheckBox<T> {
+    pub fn new<U, V>(name: String, lens: U, lens_m: V) -> Self
+    where
+        V: Fn(&mut T) -> &mut bool + Send + Sync + 'static,
+        U: Fn(&T) -> bool + Send + Sync + 'static,
+    {
+        Self {
+            name,
+            lens: Box::new(lens),
+            lens_m: Box::new(lens_m),
+        }
+    }
+}
+
 pub trait ActionSpawner {
     fn spawn(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>);
 }
@@ -86,6 +105,27 @@ impl<T: Resource> ActionSpawner for Action<T> {
 impl ActionSpawner for String {
     fn spawn(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
         parent.spawn_bundle(materials.button_text(self));
+    }
+}
+impl<T: Resource> ActionSpawner for CheckBox<T> {
+    fn spawn(self, parent: &mut ChildBuilder, materials: &Res<MenuMaterials>) {
+        let Self { name, lens, lens_m } = self;
+        parent
+            .spawn_bundle(materials.menu_lr())
+            .with_children(|p| {
+                p.spawn_bundle(materials.button_text("".to_string()))
+                    .insert(LabelText::new(move |o: &T| {
+                        char::from_u32(if (lens)(o) { 0x25a3 } else { 0x25a1 })
+                            .unwrap()
+                            .to_string()
+                    }));
+                Action::new(name, move |o: &mut T| {
+                    let b = (lens_m)(o);
+                    *b = !*b;
+                })
+                .spawn(p, materials);
+            })
+            .insert(Name::new("Volume Buttons"));
     }
 }
 
