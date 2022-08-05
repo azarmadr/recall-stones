@@ -323,7 +323,7 @@ async function load(module, imports) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('recall-stones-37f78d7d10c19f41_bg.wasm', import.meta.url);
+        input = new URL('recall-stones-9225fe85b6576f18_bg.wasm', import.meta.url);
     }
     const imports = {};
     imports.wbg = {};
