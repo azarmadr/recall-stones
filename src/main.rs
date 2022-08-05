@@ -20,8 +20,9 @@ pub fn main() {
     let mut app = App::new();
     app.insert_resource(WindowDescriptor {
         title: "Recall Stones! - A Concentration Game".to_string(),
-        width: if cfg!(feature = "debug") { 1080. } else { 480. },
+        //width: if cfg!(feature = "debug") { 1080. } else { 480. },
         height: 720.,
+ width: 1080.,
         ..Default::default()
     })
     .insert_resource(LogSettings {
