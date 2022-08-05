@@ -22,7 +22,7 @@ pub fn main() {
         title: "Recall Stones! - A Concentration Game".to_string(),
         //width: if cfg!(feature = "debug") { 1080. } else { 480. },
         height: 720.,
- width: 1080.,
+        width: 1080.,
         ..Default::default()
     })
     .insert_resource(LogSettings {
