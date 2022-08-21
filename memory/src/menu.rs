@@ -67,7 +67,7 @@ impl ButtonAction {
     #[autodefault]
     pub fn into(self) -> ResourceMap {
         let set = |i, x: u8, lb, ub| {
-            if i == true {
+            if i {
                 min(x + 1, ub)
             } else {
                 max(lb, x.saturating_sub(1))
@@ -165,8 +165,8 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
                                 .spawn_bundle(TextBundle {
             text: Text {
                 sections:vec![
-                    materials.write_strings("",27.0,Color::WHITE),
-                    materials.write_strings("\nNote: Press Apply to start a new Game with above Options,\nelse just Save and exit Menu",19.0,Color::WHITE),
+                    materials.write_strings("",1.,Color::WHITE),
+                    materials.write_strings("\nNote: Press Apply to start a new Game with above Options,\nelse just Save and exit Menu",0.7,Color::WHITE),
                 ],
                 alignment: TextAlignment {
                     horizontal: HorizontalAlign::Center,
@@ -174,7 +174,7 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
             },
             style: Style {
                 align_self: AlignSelf::Baseline,
-                margin: Rect::all(Val::Px(10.0)),
+                margin: UiRect::all(Val::Px(10.0)),
                 size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
             }
                                 })
@@ -194,7 +194,8 @@ fn apply_options(mut query: Query<&mut Text, With<MenuGOpts>>, opts: Res<MemoryG
     }
 }
 #[autodefault]
-fn setup_ui(mut cmd: Commands, materials: Res<MenuMaterials>, board_options: Res<MemoryGOpts>) {
+fn setup_ui(mut cmd: Commands, materials: Res<MenuMaterials>/*, board_options: Res<MemoryGOpts>*/) {
+    /* TODO refractor Instructions into another window
     let mode = board_options.mode;
     cmd.spawn_bundle(NodeBundle {
         style: Style {
@@ -202,7 +203,7 @@ fn setup_ui(mut cmd: Commands, materials: Res<MenuMaterials>, board_options: Res
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             position_type: PositionType::Absolute,
-            position: Rect { top: Val::Px(0.) },
+            position: UiRect { top: Val::Px(0.) },
         },
         color: Color::BLACK.into(),
     })
@@ -227,12 +228,15 @@ fn setup_ui(mut cmd: Commands, materials: Res<MenuMaterials>, board_options: Res
             },
         });
     });
+    */
+    // Players
     cmd.spawn_bundle(NodeBundle {
         style: Style {
-            size: Size::new(Val::Percent(100.), Val::Px(100.)),
+            size: Size::new(Val::Percent(100.), Val::Undefined),
             align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            border: Rect::all(Val::Px(8.0)),
+            align_self: AlignSelf::FlexEnd,
+            justify_content: JustifyContent::FlexStart,
+            border: UiRect::all(Val::Px(8.0)),
         },
         color: materials.border.into(),
     })
@@ -248,10 +252,10 @@ fn setup_ui(mut cmd: Commands, materials: Res<MenuMaterials>, board_options: Res
                     },
                     text: Text {
                         sections: vec![
-                            materials.write_strings("", 27., Color::WHITE),
-                            materials.write_strings("", 27., Color::WHITE),
-                            materials.write_strings("", 27., Color::WHITE),
-                            materials.write_strings("", 27., Color::WHITE),
+                            materials.write_strings("", 1., Color::WHITE),
+                            materials.write_strings("", 1., Color::WHITE),
+                            materials.write_strings("", 1., Color::WHITE),
+                            materials.write_strings("", 1., Color::WHITE),
                         ],
                         alignment: TextAlignment {
                             vertical: VerticalAlign::Center,

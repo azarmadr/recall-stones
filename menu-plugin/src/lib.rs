@@ -164,7 +164,7 @@ where
 {
     world.resource_scope(|world, mut mi: Mut<T>| {
         let mut e = world.query_filtered::<Entity, With<MenuItemI<T>>>();
-        let e = e.iter(&world).next().unwrap();
+        let e = e.iter(world).next().unwrap();
         world.resource_scope(|world, m: Mut<MenuMaterials>| {
             mi.system(e, &m, world);
         });

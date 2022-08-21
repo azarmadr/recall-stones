@@ -14,7 +14,7 @@ use {
 /// Game Modes
 /// Variants
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MatchRules {
     /// Pairs need only to be of same rank -- 2 == 2
     AnyColor,
@@ -109,7 +109,7 @@ impl Deck {
                 .iter()
                 .step_by(2)
                 .chain(map.iter().skip(1).step_by(2))
-                .map(|&x| x)
+                .copied()
                 .collect();
             map[0..count as usize].shuffle(&mut rng);
             map[count as usize..2 * count as usize].shuffle(&mut rng);
@@ -129,7 +129,7 @@ impl Deck {
         let eq = l % 14 == r % 14;
         match self.mode.rule {
             AnyColor => eq,
-            Zebra => eq && (l / 14 ^ r / 14 != 2),
+            Zebra => eq && ((l / 14) ^ (r / 14) != 2),
             SameColor => eq && l / 14 % 2 == r / 14 % 2,
             TwoDecks => l == r,
             CheckeredDeck => l % 56 == r % 56,

@@ -18,6 +18,7 @@ pub struct MenuMaterials {
     pub font: Handle<Font>,
     pub button_border: Color,
     pub button_text: Color,
+    pub size: f32,
 }
 impl FromWorld for MenuMaterials {
     fn from_world(world: &mut World) -> Self {
@@ -34,6 +35,7 @@ impl FromWorld for MenuMaterials {
             pressed: Color::rgb(0.35, 0.75, 0.35),
             font: asset_server.load("fonts/FiraMono-Medium.ttf"),
             button_text: Color::rgb(0.9, 0.9, 0.9),
+            size: 720.
         }
     }
 }
@@ -59,8 +61,7 @@ impl MenuMaterials {
         NamedBundle {
             node: NodeBundle {
                 style: Style {
-                    //size: Size::new(Val::Percent(100.), Val::Px(50.)),
-                    border: Rect::all(Val::Px(3.0)),
+                    border: UiRect::all(Val::Px(self.size*0.003)),
                     flex_basis: Val::Px(0.),
                     ..default()
                 },
@@ -74,8 +75,7 @@ impl MenuMaterials {
         NamedBundle {
             node: NodeBundle {
                 style: Style {
-                    //size: Size::new(Val::Px(400.0), Val::Auto),
-                    border: Rect::all(Val::Px(3.0)),
+                    border: UiRect::all(Val::Px(self.size*0.003)),
                     flex_basis: Val::Px(0.),
                     ..default()
                 },
@@ -92,7 +92,7 @@ impl MenuMaterials {
                     size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
-                    border: Rect::all(Val::Px(3.0)),
+                    border: UiRect::all(Val::Px(self.size*0.003)),
                     flex_basis: Val::Px(0.),
                     ..default()
                 },
@@ -109,7 +109,7 @@ impl MenuMaterials {
                     size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    padding: Rect::all(Val::Px(5.0)),
+                    padding: UiRect::all(Val::Px(5.0)),
                     flex_direction,
                     flex_basis: Val::Px(0.),
                     ..default()
@@ -137,24 +137,22 @@ impl MenuMaterials {
         NamedBundle {
             node: TextBundle {
                 style: Style {
-                    margin: Rect {
+                    margin: UiRect {
                         right: Val::Px(10.0),
                         left: Val::Px(10.),
                     },
                     flex_basis: Val::Px(0.),
                 },
-                text: Text::with_section(
+                text: Text::from_section(
                     label.into(),
                     TextStyle {
                         font: self.font.clone(),
-                        font_size: 25.0,
+                        font_size: self.size/27.,
                         color: self.button_text,
-                    },
-                    TextAlignment {
+                    }).with_alignment( TextAlignment {
                         vertical: VerticalAlign::Center,
                         horizontal: HorizontalAlign::Center,
-                    },
-                ),
+                    }),
             },
             name: Name::new("Button Text"),
         }
@@ -166,10 +164,10 @@ impl MenuMaterials {
         color: Color,
     ) -> TextSection {
         TextSection {
-            value: format!("{}\n", text.into()).into(),
+            value: format!("{}\n", text.into()),
             style: TextStyle {
                 font: self.font.clone(),
-                font_size,
+                font_size: self.size/27.*font_size,
                 color,
             },
         }

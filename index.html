@@ -4,20 +4,34 @@
   <title>Recall Stones</title>
   <meta charset="utf-8"/>
   <link data-trunk rel="copy-dir" href="assets"/>
-  <!--link data-trunk rel="copy-dir" href="credits"/>
-  <link data-trunk rel="copy-file" href="build/windows/icon.ico"/>
-  <link rel="icon" href="icon.ico">
-  <link data-trunk rel="inline" href="build/web/styles.css"/-->
+  <link data-trunk rel="inline" href="resources/web/styles.css"/>
+  <link rel="manifest" href="./manifest.json" />
+  <meta
+    name="viewport"
+    content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <link rel="icon" type="image/x-icon" href="./assets/icon/rec.ico" />
+  <!-- <link data-trunk rel="copy-dir" href="credits"/> -->
+  <!-- <link rel="icon" href="icon.ico"> -->
+  <script> function resizeCanvas(){ } </script>
 </head>
-<body>
-  <p><a href="https://github.com/azarmadr/recall-stones">GitHub Repo - Recall Stones!</a></p>
-  <!--script type="module">
+<body onresize="resizeCanvas()">
+<script type="module">
     import init from './recall-stones.js'
-    init()
 
+    init()
     document.addEventListener('contextmenu', function (evt) {
         evt.preventDefault();
     })
-  </script-->
+</script>
+<!-- <canvas tabindex="0" data-raw-handle="1" alt="Recall Stones! - A Concentration Game" cursor="auto"></canvas> -->
+<script>
+  let canvas = document.querySelector`canvas`
+  canvas.onfocus = _=>{
+      console.log(canvas.style)
+      //canvas.style = '';
+      delete canvas.onfocus
+    }
+</script>
 </body>
 </html>

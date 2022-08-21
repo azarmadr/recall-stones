@@ -16,26 +16,21 @@ rand = "0.8"
 autodefault = "2.0.0"
 duplicate = "0.4"
 enum_dispatch = "0.3"
-bevy_tweening = "0.4"
+bevy_tweening = "0.5"
 menu-plugin = {path = "../menu-plugin"}
 #mat = {path = "mat"}
 
 # Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]
-version = "0.10"
+version = "0.12"
 optional = true
 
 # Engine
 [dependencies.bevy]
-version = "0.7"
+version = "0.8"
 default-features = false
 features = [
   "bevy_render",        # Rendering framework core
   "bevy_text",          # Text/font rendering
   "bevy_ui",            # UI toolkit
 ]
-
-# Dependencies for WASM only
-[target.'cfg(target_arch = "wasm32")'.dependencies.getrandom]
-version="0.2"
-features=["js"]

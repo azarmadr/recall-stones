@@ -7,8 +7,8 @@ pub fn card_flip(
     vis: Query<(&Parent, &Visibility), With<Animator<Visibility>>>,
     assets: Res<MemoryGAssts>,
 ) {
-    vis.iter().for_each(|(&p, ref v)| {
-        if let Ok(mut c) = cards.get_mut(*p).as_mut() {
+    vis.iter().for_each(|(p, ref v)| {
+        if let Ok(mut c) = cards.get_mut(p.get()).as_mut() {
             assets.flip_card_color(&mut c, v.is_visible);
         }
     });
@@ -33,20 +33,19 @@ pub fn uncover(
     let deck_complete = deck.outcome().is_some();
 
     let text = |id: &Idx| TextBundle {
-        text: Text::with_section(
+        text: Text::from_section(
             id.1.to_string(),
             TextStyle {
                 color: assets.count_color(id.1),
                 font: assets.score_font.clone(),
                 font_size: 22.,
             },
-            TextAlignment {
-                horizontal: HorizontalAlign::Left,
-                vertical: VerticalAlign::Top,
-            },
-        ),
+            ).with_alignment(TextAlignment {
+            horizontal: HorizontalAlign::Left,
+            vertical: VerticalAlign::Top,
+        }),
         style: Style {
-            position: Rect {
+            position: UiRect {
                 left: Val::Px(20.),
                 ..default()
             },
@@ -150,7 +149,7 @@ pub fn deck_complete(
                             section: 0,
                         },
                     )
-                    .with_completed_event(true, std::u64::MAX),
+                    .with_completed_event(std::u64::MAX),
                 ));
             let mut cycle = (15..27).cycle();
             let mut tween = |e| {

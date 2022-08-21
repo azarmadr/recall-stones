@@ -58,7 +58,7 @@ pub fn score_board(
     deck: Res<Deck>,
 ) {
     for (player, mut text, parent) in players.iter_mut() {
-        let mut color = color.get_mut(parent.0).unwrap();
+        let mut color = color.get_mut(parent.get()).unwrap();
         if deck.next_player() == player.deref().0 {
             color.0 = Color::GREEN;
         } else {

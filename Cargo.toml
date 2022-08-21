@@ -18,11 +18,11 @@ menu-plugin = {path = "menu-plugin"}
 
 # Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]
-version = "0.10"
+version = "0.12"
 optional = true
 
 [dependencies.bevy]
-version = "0.7"
+version = "0.8"
 default-features = false
 features = [
   "bevy_render",        # Rendering framework core
@@ -34,10 +34,14 @@ features = [
 ]
 
 # Dependencies for native only.
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.bevy]
-version = "0.7"
+[target.'cfg(target_os = "linux")'.dependencies.bevy]
+version = "0.8"
 default-features = false
-features = ["x11"]
+features = ["dynamic","x11"]
+
+# Dependencies for WASM only.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = "0.3"
 
 [workspace]
 members = [
@@ -45,6 +49,7 @@ members = [
   "menu-plugin",
   #"paper-plugin/mat"
 ]
+resolver = "2"
 
 # Enable optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
