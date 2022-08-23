@@ -3,3 +3,6 @@ memory/mat/
 memory/tests/
 public/
 resources/*
+app1/*
+bacon.toml
+assets/icon/favicon.ico
