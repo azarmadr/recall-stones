@@ -2,23 +2,63 @@
   <title>Recall Stones</title>
   <meta charset="utf-8">
   
-  <!--link data-trunk rel="copy-dir" href="credits"/>
-  <link data-trunk rel="copy-file" href="build/windows/icon.ico"/>
-  <link rel="icon" href="icon.ico">
-  <link data-trunk rel="inline" href="build/web/styles.css"/-->
+  <style type="text/css">body {
+    background: linear-gradient(
+            135deg,
+            white 0%,
+            white 49%,
+            black 49%,
+            black 51%,
+            white 51%,
+            white 100%
+    ) repeat;
+    background-size: 20px 20px;
+    /* {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+    }*/
+    margin: 0;
+}
+div {
 
-<link rel="preload" href="/recall-stones/recall-stones-9225fe85b6576f18_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/recall-stones/recall-stones-9225fe85b6576f18.js"></head>
-<body>
-  <p><a href="https://github.com/azarmadr/recall-stones">GitHub Repo - Recall Stones!</a></p>
-  <!--script type="module">
+}
+canvas {
+    background-color: white;
+    /*width: 100vw !important;
+    height: 100vh !important;*/
+}
+/* element.style { */
+/*     width: 100vw; */
+/* } */
+</style>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/x-icon" href="./assets/icon/rec.ico">
+  <!-- <link data-trunk rel="copy-dir" href="credits"/> -->
+  <!-- <link rel="icon" href="icon.ico"> -->
+  <script> function resizeCanvas(){ } </script>
+
+<link rel="preload" href="/recall-stones/recall-stones-ed9a49ab981a2e45_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/recall-stones/recall-stones-ed9a49ab981a2e45.js"></head>
+<body onresize="resizeCanvas()">
+<script type="module">
     import init from './recall-stones.js'
-    init()
 
+    init()
     document.addEventListener('contextmenu', function (evt) {
         evt.preventDefault();
     })
-  </script-->
+</script>
+<!-- <canvas tabindex="0" data-raw-handle="1" alt="Recall Stones! - A Concentration Game" cursor="auto"></canvas> -->
+<script>
+  let canvas = document.querySelector`canvas`
+  canvas.onfocus = _=>{
+      console.log(canvas.style)
+      //canvas.style = '';
+      delete canvas.onfocus
+    }
+</script>
 
 
-<script type="module">import init from '/recall-stones/recall-stones-9225fe85b6576f18.js';init('/recall-stones/recall-stones-9225fe85b6576f18_bg.wasm');</script></body></html>
+<script type="module">import init from '/recall-stones/recall-stones-ed9a49ab981a2e45.js';init('/recall-stones/recall-stones-ed9a49ab981a2e45_bg.wasm');</script></body></html>
