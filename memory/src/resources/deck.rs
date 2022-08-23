@@ -29,7 +29,7 @@ pub enum MatchRules {
 }
 use MatchRules::*;
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Mode {
     pub rule: MatchRules,
     pub combo: bool,
@@ -49,10 +49,15 @@ impl Default for Mode {
 #[derive(Debug, Clone)]
 pub struct Deck {
     mode: Mode,
+    /// Map of cards, where each entry is 
+    /// card with its value in 7 bits,
+    /// player who opened it in 2 bits,
+    /// number of times opened in 7 bits.
     map: Vec<u16>,
-    player: (u8, u8),
+    players: (u8, u8),
     outcome: Option<u8>,
     pub opened: Vec<usize>,
+    pub scores: Vec<u16>,
 }
 impl Deck {
     /// Randomize couplets till max count and initialize them in the Deck
@@ -117,15 +122,17 @@ impl Deck {
         Self {
             mode,
             map,
-            player: (0, players),
+            players: (0, players),
             outcome: None,
             opened: vec![],
+            scores: vec![0;players as usize],
         }
     }
     #[inline]
     fn match_found(&self) -> bool {
-        let l = self[self.opened[0]];
-        let r = self[self.opened[1]];
+        let l = self[self.opened[0]] & ((1<<7) - 1);
+        let r = self[self.opened[1]] & ((1<<7) - 1);
+        println!("{l} {r}");
         let eq = l % 14 == r % 14;
         match self.mode.rule {
             AnyColor => eq,
@@ -137,14 +144,14 @@ impl Deck {
     }
 
     pub fn next_player(&self) -> u8 {
-        self.player.0
+        (self.players.0 + 1) % self.players.1
     }
 
     pub fn is_revealed(&self, mv: usize) -> bool {
-        self[mv] > 127
+        self[mv] & (3 << 7)  > 0
     }
     pub fn is_available_move(&self, mv: usize) -> bool {
-        !self.is_revealed(mv) && !(self.opened.contains(&mv) && self.opened.len() == 1)
+        !(self.is_revealed(mv) || self.opened.contains(&mv) && self.opened.len() == 1)
     }
 
     pub fn play(&mut self, mv: usize) {
@@ -159,28 +166,35 @@ impl Deck {
             self.opened.clear();
         }
 
-        println!(
-            "played: {}, card: {}, player: {:?}",
-            mv, self[mv], self.player
-        );
+        println!("played: {mv}, card: {}, players: {:?}",self[mv],self.players);
         self.opened.push(mv);
+        self[mv] += 1<<9;
 
         if self.opened.len() == 2 {
             if self.match_found() {
-                let id = self.opened[0];
-                self[id] += 128 * self.player.0 as u16 + 128;
-                let id = self.opened[1];
-                self[id] += 128 * self.player.0 as u16 + 128;
-                if self.iter().all(|&x| x > 127) {
-                    self.outcome = Some(self.next_player());
+                let player = (self.player() as u16 + 1) << 7; 
+                let pmv = self.opened[0];
+                self[pmv] += player;
+                self[mv]  += player;
+                if self.iter().all(|&x| (x & 3 <<7) > 0) {
+                    self.outcome = Some(self.player());
+                }
+                if self.outcome.is_some() || self[mv] >>9 > 1 {
+                    let score = (self[pmv]>>9) + (self[mv]>>9);
+                    let player = self.player() as usize;
+                    self.scores[player] += score;
                 }
                 if !self.mode.combo {
-                    self.player.0 = (self.player.0 + 1) % self.player.1;
+                    self.players.0 = self.next_player();
                 }
             } else {
-                self.player.0 = (self.player.0 + 1) % self.player.1;
+                self.players.0 = self.next_player();
             }
         }
+    }
+
+    pub fn player(&self) -> u8 {
+        self.players.0
     }
 
     pub fn outcome(&self) -> Option<u8> {

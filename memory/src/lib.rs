@@ -82,7 +82,7 @@ impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
         #[cfg(feature = "debug")]
         {
             app
-                // .add_plugin(InspectorPlugin::<Deck>::new())
+                .add_plugin(InspectorPlugin::<Deck>::new())
                 .add_plugin(InspectorPlugin::<MemoryGOpts>::new())
                 // .add_plugin(InspectorPlugin::<MemoryGAssts>::new())
                 ;

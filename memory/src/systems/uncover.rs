@@ -7,9 +7,9 @@ pub fn card_flip(
     vis: Query<(&Parent, &Visibility), With<Animator<Visibility>>>,
     assets: Res<MemoryGAssts>,
 ) {
-    vis.iter().for_each(|(p, ref v)| {
-        if let Ok(mut c) = cards.get_mut(p.get()).as_mut() {
-            assets.flip_card_color(&mut c, v.is_visible);
+    vis.iter().for_each(|(p, v)| {
+        if let Ok(c) = cards.get_mut(p.get()).as_mut() {
+            assets.flip_card_color(c, v.is_visible);
         }
     });
 }
@@ -69,7 +69,7 @@ pub fn uncover(
                 }
             });
         }
-        deck.opened.last().and_then(|&v| {
+        deck.opened.last().map(|&v| {
             opened.push(v);
             tween(true, find_card(v).0);
             Some(())
@@ -77,13 +77,7 @@ pub fn uncover(
         if !new_turn {
             cards
                 .iter()
-                .filter_map(|x| {
-                    if deck.opened.contains(&x.1 .0) {
-                        Some(x)
-                    } else {
-                        None
-                    }
-                })
+                .filter(|x| deck.opened.contains(&x.1 .0) )
                 .for_each(|(entity, id)| {
                     if deck.is_available_move(id.0) {
                         println!("SSS");
@@ -91,14 +85,13 @@ pub fn uncover(
                             .insert(Animator::new(shake_seq(ROT_TIME)));
                     } else if deck_complete {
                         opened.clear();
-                        children.get(entity).ok().and_then(|children| {
+                        if let Ok(children) = children.get(entity) {
                             children.iter().for_each(|&child| {
                                 cmd.entity(child).with_children(|parent| {
                                     parent.spawn_bundle(text(id));
                                 });
                             });
-                            Some(())
-                        });
+                        };
                     } else {
                         cmd.entity(entity)
                             .insert(Animator::new(vis_seq(12 * ROT_TIME, false)));
@@ -127,7 +120,7 @@ pub fn deck_complete(
 ) {
     if deck.outcome().is_some() {
         if let (entity, mut text, None) = score.single_mut() {
-            text.sections[3].value = format!("Deck Completed\n");
+            text.sections[3].value = "Deck Completed\n".to_string();
             cmd.entity(entity)
                 .insert(Animator::new(Tween::new(
                     EaseFunction::ElasticInOut,
@@ -162,10 +155,9 @@ pub fn deck_complete(
                 tween(entity);
                 for &child in &**children.get(entity).unwrap() {
                     tween(child);
-                    children.get(child).ok().and_then(|children| {
+                    if let Ok(children) =  children.get(child) {
                         children.iter().for_each(|&child| tween(child));
-                        Some(())
-                    });
+                    };
                 }
             }
         }

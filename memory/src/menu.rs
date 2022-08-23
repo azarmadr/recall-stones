@@ -44,7 +44,7 @@ fn despawn<T: Component>(mut cmd: Commands, query: Query<Entity, With<T>>) {
 
 /// Button action type
 //#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
-#[derive(Debug, Copy, Clone, PartialEq, Component)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Component)]
 pub enum ButtonAction {
     Level,
     Mode(MatchRules),
