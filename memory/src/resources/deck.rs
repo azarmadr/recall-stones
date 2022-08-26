@@ -11,6 +11,9 @@ use {
     },
 };
 
+const CARD_MASK:u8 = (1<<7) -1;
+const OWN_MASK:u16 = 3<<7;
+
 /// Game Modes
 /// Variants
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
@@ -34,6 +37,7 @@ pub struct Mode {
     pub rule: MatchRules,
     pub combo: bool,
     pub full_plate: bool,
+    pub duel: bool,
 }
 impl Default for Mode {
     fn default() -> Self {
@@ -41,6 +45,7 @@ impl Default for Mode {
             rule: Zebra,
             combo: true,
             full_plate: true,
+            duel: true,
         }
     }
 }
@@ -130,9 +135,9 @@ impl Deck {
     }
     #[inline]
     fn match_found(&self) -> bool {
-        let l = self[self.opened[0]] & ((1<<7) - 1);
-        let r = self[self.opened[1]] & ((1<<7) - 1);
-        println!("{l} {r}");
+        let l = self.get_card(self.opened[0]);
+        let r = self.get_card(self.opened[1]);
+        // println!("{l} {r}");
         let eq = l % 14 == r % 14;
         match self.mode.rule {
             AnyColor => eq,
@@ -148,7 +153,7 @@ impl Deck {
     }
 
     pub fn is_revealed(&self, mv: usize) -> bool {
-        self[mv] & (3 << 7)  > 0
+        self.get_owner(mv) > 0
     }
     pub fn is_available_move(&self, mv: usize) -> bool {
         !(self.is_revealed(mv) || self.opened.contains(&mv) && self.opened.len() == 1)
@@ -166,7 +171,7 @@ impl Deck {
             self.opened.clear();
         }
 
-        println!("played: {mv}, card: {}, players: {:?}",self[mv],self.players);
+        // println!("played: {mv}, card: {}, players: {:?}",self[mv],self.players);
         self.opened.push(mv);
         self[mv] += 1<<9;
 
@@ -176,13 +181,18 @@ impl Deck {
                 let pmv = self.opened[0];
                 self[pmv] += player;
                 self[mv]  += player;
-                if self.iter().all(|&x| (x & 3 <<7) > 0) {
-                    self.outcome = Some(self.player());
-                }
-                if self.outcome.is_some() || self[mv] >>9 > 1 {
-                    let score = (self[pmv]>>9) + (self[mv]>>9);
+                let outcome = self.iter().all(|&x| (x & 3 <<7) > 0);
+                if outcome || self.get_count(mv) > 1 {
+                    let score = self.get_count(pmv) + self.get_count(mv);
                     let player = self.player() as usize;
-                    self.scores[player] += score;
+                    self.scores[player] += score as u16;
+                }
+                if outcome {
+                    let s0 = self.scores[0];
+                    let s1 = self.scores[1];
+                    self.outcome = Some(if s0 > s1 {
+                        0
+                    } else {1});
                 }
                 if !self.mode.combo {
                     self.players.0 = self.next_player();
@@ -201,6 +211,18 @@ impl Deck {
         self.outcome
     }
 
+    fn _get(&self, idx: usize) -> u16 {
+        self[idx]
+    }
+    pub fn get_owner(&self, idx: usize) -> u8 {
+        ((self[idx] & OWN_MASK) >> 7)as u8
+    }
+    pub fn get_card(&self, idx: usize) -> u8 {
+        self[idx] as u8 & CARD_MASK
+    }
+    pub fn get_count(&self, idx: usize) -> u8 {
+        (self[idx] >> 9) as u8
+    }
     /*
     fn can_lose_after_move() -> bool {
         false

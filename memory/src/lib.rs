@@ -4,17 +4,13 @@ use {
         ecs::schedule::{ShouldRun, StateData},
         prelude::*,
     },
-    menu::{MenuPlugin},
+    menu::MenuPlugin,
     menu_plugin::MenuMaterials,
     rand::seq::SliceRandom,
     std::time::Duration,
     {components::*, deck::Deck, tween::*},
 };
-pub use {
-    components::{Player, ScoreBoard},
-    events::*,
-    resources::*,
-};
+pub use {components::Player, events::*, resources::*};
 
 #[cfg(feature = "debug")]
 use {bevy::log, bevy_inspector_egui::InspectorPlugin};
@@ -34,16 +30,13 @@ pub enum AppState {
 }
 use AppState::*;
 
-#[derive(Debug, Copy, Clone)]
-pub struct DeckCompletedEvent;
-
 #[derive(Component)]
 #[component(storage = "SparseSet")]
 pub struct Board;
 
 #[derive(Component)]
 #[component(storage = "SparseSet")]
-pub struct ScoreBoard1;
+pub struct ScoreBoard;
 
 #[derive(Deref)]
 pub struct MemoryGamePlugin<T>(pub T);
@@ -66,18 +59,17 @@ impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
             .add_system_set(SystemSet::on_pause(InGame).with_system(hide_board))
             .add_system_set(SystemSet::on_resume(InGame).with_system(show_board))
             .add_system_set(SystemSet::on_exit(InGame).with_system(despawn::<Board>))
-            .add_system_set(SystemSet::on_exit(InGame).with_system(despawn::<ScoreBoard1>))
+            .add_system_set(SystemSet::on_exit(InGame).with_system(despawn::<ScoreBoard>))
             .add_system(component_animator_system::<Visibility>)
-            .add_event::<DeckCompletedEvent>()
             .init_resource::<MemoryGAssts>()
             .add_system(component_animator_system::<UiColor>)
             .add_plugin(MenuPlugin {
                 game: InGame,
                 menu: Menu,
             })
-        .add_system_set(SystemSet::on_enter(**self).with_system(splash_off))
-        .add_system_set(SystemSet::on_in_stack_update(**self).with_system(on_completion))
-        .add_system_set(SystemSet::on_exit(**self).with_system(splash_on))
+            .add_system_set(SystemSet::on_enter(**self).with_system(splash_off))
+            .add_system_set(SystemSet::on_in_stack_update(**self).with_system(on_completion))
+            .add_system_set(SystemSet::on_exit(**self).with_system(splash_on))
             .init_resource::<MemoryGOpts>();
         #[cfg(feature = "debug")]
         {
@@ -90,10 +82,10 @@ impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
     }
 }
 
-pub fn splash_on(mut state: ResMut<State<AppState>>){
+pub fn splash_on(mut state: ResMut<State<AppState>>) {
     state.push(AppState::Splash).unwrap();
 }
-pub fn splash_off(mut state: ResMut<State<AppState>>){
+pub fn splash_off(mut state: ResMut<State<AppState>>) {
     if state.inactives().is_empty() {
         state.replace(AppState::Menu).unwrap();
     } else {
@@ -140,7 +132,7 @@ pub fn create_board(
     let players = opts.create_players();
     let deck = Deck::init(opts.deck_params(), opts.mode, players.len() as u8);
     // let size = opts.card_size(deck_width, deck_width);
-    let size = material.size/deck_width.max(2.*(count as f32/deck_width).ceil()) * 0.77;
+    let size = material.size / deck_width.max(2. * (count as f32 / deck_width).ceil()) * 0.77;
     #[cfg(feature = "debug")]
     {
         log::info!("{deck}");
@@ -240,43 +232,57 @@ pub fn create_board(
         size: Size::new(Val::Percent(100.), Val::Undefined),
     }))
     .insert(Name::new("Score Panel"))
-    .insert(ScoreBoard1)
+    .insert(ScoreBoard)
     .with_children(|p| {
         players.iter().enumerate().for_each(|(n, pl)| {
+            let text_bundle = |value| TextBundle {
+                style: Style {
+                    flex_basis: Val::Px(0.),
+                    align_self: AlignSelf::Center,
+                    margin: UiRect {
+                        right: Val::Px(10.),
+                        left: Val::Px(10.),
+                    },
+                },
+                text: Text {
+                    sections: vec![TextSection {
+                        value,
+                        style: TextStyle {
+                            color: Color::RED,
+                            font: assets.score_font.clone(),
+                            font_size: material.size / 27. * 0.8,
+                        },
+                    }],
+                    alignment: TextAlignment {
+                        vertical: VerticalAlign::Center,
+                        horizontal: HorizontalAlign::Center,
+                    },
+                },
+            };
             p.spawn_bundle(assets.board.node(Style {
-                //flex_basis: Val::Px(0.),
-                flex_direction: FlexDirection::Row,
+                flex_direction: FlexDirection::ColumnReverse,
                 justify_content: JustifyContent::Center,
                 align_content: AlignContent::FlexStart,
-                //size: Size::new(Val::Px(width), Val::Percent(100.0)),
             }))
             .with_children(|p| {
-                p.spawn_bundle(TextBundle {
-                    style: Style {
-                        flex_basis: Val::Px(0.),
-                        ..Default::default()
-                    },
-                    text: Text {
-                        sections: vec![TextSection {
-                            value: format!(
-                                "{} {}\nOpened: 0\nTurns: 0\n{:?}",
-                                if pl.is_bot() { "Bot" } else { "Human" },
-                                n,
-                                pl
-                            ),
-                            style: TextStyle {
-                                color: Color::RED,
-                                font: assets.score_font.clone(),
-                                font_size: material.size / 27. * 0.8,
-                            },
-                        }],
-                        alignment: TextAlignment {
-                            vertical: VerticalAlign::Center,
-                            horizontal: HorizontalAlign::Center,
-                        },
-                    },
-                })
+                p.spawn_bundle(text_bundle(format!(
+                    "{} {n}\nOpened: 0\nTurns: 0",
+                    if pl.is_bot() { "Bot" } else { "Human" },
+                )))
                 .insert(*pl);
+                /*
+                p.spawn_bundle(assets.board.node(Style {}))
+                .with_children(|p| {
+                    for &key in ["Score", "Opened", "Turns"].iter() {
+                        p.spawn_bundle(assets.board.node(Style {
+                            flex_basis: Val::Px(0.)
+                        }))
+                            .with_children(|p| {
+                                p.spawn_bundle(text_bundle(key.to_string()));
+                            });
+                    }
+                });
+                */
             });
         });
     });
@@ -290,16 +296,19 @@ fn despawn<T: Component>(mut cmd: Commands, query: Query<Entity, With<T>>) {
 /// Display Menu for 3 seconds before applying the set opts
 fn on_completion(
     mut state: ResMut<State<AppState>>,
-    mut board_complete_evr: EventReader<DeckCompletedEvent>,
     mut opts: ResMut<MemoryGOpts>,
     mut timer: Local<Timer>,
+    mut board_complete_evr: EventReader<TweenCompleted>,
     time: Res<Time>,
 ) {
     if timer.duration() == Duration::ZERO {
         timer.set_duration(Duration::from_secs(5));
     }
-    for _ev in board_complete_evr.iter() {
-        opts.level = 5.min(opts.level+1);
+    if board_complete_evr
+        .iter()
+        .any(|&x| x.user_data == std::u64::MAX)
+    {
+        opts.level = 5.min(opts.level + 1);
         state.push(AppState::Menu).unwrap();
         timer.reset();
     }

@@ -12,7 +12,6 @@ duplicate! {[
     component_type  comment;
     [Open]          [Open];
     [Close]         [Close];
-    [ScoreBoard]    [ScoreBoard];
     [Revealed]      [Revealed];
 ]
     ///comment
@@ -51,7 +50,6 @@ pub trait PlayerOps {
 #[duplicate_item(pl; [Flesh]; [Bolts];)]
 impl PlayerOps for pl {
     fn inc_turn(&mut self) {
-        println!("inc_turn");
         self.1 += 1;
     }
 }
@@ -66,6 +64,12 @@ impl Player {
         match self {
             Player::Flesh(Flesh(x, y)) => (*x, *y),
             Player::Bolts(Bolts(x, y)) => (*x, *y),
+        }
+    }
+    pub fn id(&self) -> u8 {
+        match self {
+            Player::Flesh(Flesh(x,_)) => *x,
+            Player::Bolts(Bolts(x,_)) => *x,
         }
     }
     pub fn is_bot(&self) -> bool {

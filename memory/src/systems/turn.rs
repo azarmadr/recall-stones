@@ -1,8 +1,14 @@
+use bevy_tweening::{Animator, EaseFunction, Tween, TweeningType};
+
+use crate::tween::BeTween;
+
+use super::ROT_TIME;
+
 use {
     crate::{components::*, Deck},
     bevy::prelude::*,
     rand::seq::IteratorRandom,
-    bevy::log::prelude::info,
+    // bevy::log::prelude::info,
 };
 
 #[derive(Deref, DerefMut)]
@@ -36,9 +42,12 @@ pub fn turn(
     } else if player.is_bot() {
         None
     } else {
-        cards.iter_mut().find(|(id, &flip, tracker)| {
-            tracker.is_changed() && flip == Interaction::Clicked && deck.is_available_move(id.0)
-        }).map(|x| x.0)
+        cards
+            .iter_mut()
+            .find(|(id, &flip, tracker)| {
+                tracker.is_changed() && flip == Interaction::Clicked && deck.is_available_move(id.0)
+            })
+            .map(|x| x.0)
     } {
         deck.play(id.0);
         if deck.opened.len() == 2 {
@@ -48,25 +57,46 @@ pub fn turn(
     };
 }
 pub fn score_board(
-    mut players: Query<(&Player, &mut Text, &Parent)>,
-    mut color: Query<&mut UiColor>,
+    players: Query<(Entity, &Player, &Parent)>,
     deck: Res<Deck>,
+    // children: Query<&Children>,
+    mut text: Query<&mut Text>,
+    mut cmd: Commands,
+    mut turn_change: Local<Option<u8>>,
 ) {
-    for (player, mut text, parent) in players.iter_mut() {
-        let mut color = color.get_mut(parent.get()).unwrap();
-        if deck.player() == player.deref().0 {
-            color.0 = Color::GREEN;
-        } else {
-            color.0 = Color::WHITE;
-        }
-        text.sections[0].value = format!(
-            "{}\nScore: {}\nOpened: {}\nTurns: {}\n{player:?}",
-            if player.is_bot() { "Bot" } else { "Human" },
-            deck.scores[player.deref().0 as usize],
-            deck.iter()
-                .filter(|&&c| c / 128 == 1 + player.deref().0 as u16)
-                .count(),
+    if turn_change.map_or(deck.outcome().is_none(), |x| x != deck.player()) {
+        println!("{turn_change:?}");
+        for (entity, player, parent) in players.iter() {
+            let is_player = player.id() == deck.player();
+            cmd.entity(**parent).insert(Animator::new(Tween::new(
+                EaseFunction::QuadraticIn,
+                TweeningType::Once,
+                ROT_TIME * 2,
+                BeTween::with_lerp(move |c: &mut UiColor, _, r| {
+                    let end = if is_player {
+                        Color::GREEN
+                    } else {
+                        Color::WHITE
+                    };
+                    let start: Vec4 = c.0.into();
+                    *c = UiColor(start.lerp(end.into(), r).into());
+                }),
+            )));
+            let mut text = text.get_mut(entity).unwrap();
+            text.sections[0].value = format!(
+                "{} {}\nScore: {}\nOpened: {}\nTurns: {}\n",
+                if player.is_bot() { "Bot" } else { "Human" },
+                player.deref().0,
+                deck.scores[player.deref().0 as usize],
+                deck.iter()
+                    .filter(|&&c| c / 128 == 1 + player.deref().0 as u16)
+                    .count(),
                 player.deref().1
-        );
+            );
+        }
+        *turn_change = Some(deck.player());
+    }
+    if deck.outcome().is_some() {
+        *turn_change = None
     }
 }

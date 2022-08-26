@@ -138,7 +138,7 @@ impl MenuMaterials {
             node: TextBundle {
                 style: Style {
                     margin: UiRect {
-                        right: Val::Px(10.0),
+                        right: Val::Px(10.),
                         left: Val::Px(10.),
                     },
                     flex_basis: Val::Px(0.),

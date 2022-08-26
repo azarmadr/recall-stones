@@ -28,6 +28,7 @@ impl Default for MemoryGOpts {
                 rule: Zebra,
                 combo: true,
                 full_plate: true,
+                duel: true,
             },
             players: (1, 1),
         }

@@ -1,5 +1,5 @@
 use {
-    super::{AppState, MatchRules, MatchRules::*, MemoryGOpts, ScoreBoard},
+    super::{AppState, MatchRules, MatchRules::*, MemoryGOpts},
     autodefault::autodefault,
     bevy::{ecs::schedule::StateData, prelude::*},
     enum_dispatch::enum_dispatch,
@@ -243,6 +243,8 @@ fn setup_ui(mut cmd: Commands, materials: Res<MenuMaterials>/*, board_options: R
     .insert(UI)
     .insert(Name::new("UI"))
     .with_children(|p| {
+        ButtonAction::Menu.into().spawn(p, &materials);
+        /*
         p.spawn_bundle(materials.menu_td()).with_children(|parent| {
             parent
                 .spawn_bundle(TextBundle {
@@ -265,8 +267,7 @@ fn setup_ui(mut cmd: Commands, materials: Res<MenuMaterials>/*, board_options: R
                 })
                 .insert(Name::new("ScoreBoard"))
                 .insert(ScoreBoard);
-            ButtonAction::Menu.into().spawn(parent, &materials);
-        });
+        */
     });
 }
 #[derive(Component)]
