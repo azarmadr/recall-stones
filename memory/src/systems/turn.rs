@@ -65,7 +65,6 @@ pub fn score_board(
     mut turn_change: Local<Option<u8>>,
 ) {
     if turn_change.map_or(deck.outcome().is_none(), |x| x != deck.player()) {
-        println!("{turn_change:?}");
         for (entity, player, parent) in players.iter() {
             let is_player = player.id() == deck.player();
             cmd.entity(**parent).insert(Animator::new(Tween::new(

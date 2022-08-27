@@ -30,9 +30,10 @@ impl<T: Resource> LabelText<T> {
         Self(Box::new(action))
     }
 }
+type VolAction<T> = Box<dyn Fn(&mut T, bool) + Send + Sync + 'static>;
 pub struct Vol<T> {
     label: Box<dyn Fn(&T) -> String + Send + Sync + 'static>,
-    action: Box<dyn Fn(&mut T, bool) + Send + Sync + 'static>,
+    action: VolAction<T>,
 }
 impl<T: Resource> Vol<T> {
     pub fn new<U, V>(label: V, action: U) -> Self

@@ -132,7 +132,7 @@ impl MenuMaterials {
             ..self.menu_background(FlexDirection::ColumnReverse)
         }
     }
-    #[autodefault]
+    #[autodefault(except(NamedBundle,TextStyle,TextAlignment))]
     pub fn button_text<S: Into<String>>(&self, label: S) -> NamedBundle<TextBundle> {
         NamedBundle {
             node: TextBundle {

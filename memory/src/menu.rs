@@ -52,8 +52,9 @@ pub enum ButtonAction {
     Bot,
     FullPlate,
     Combo,
+    Duel,
     Apply,
-    Save,
+    OK,
     Menu,
 }
 pub use ButtonAction::*;
@@ -79,7 +80,7 @@ impl ButtonAction {
                     state.overwrite_replace(AppState::InGame).unwrap();
                 }
             })),
-            Save => StateRes(Action::new(self.name(), |state: &mut State<AppState>| {
+            OK => StateRes(Action::new(self.name(), |state: &mut State<AppState>| {
                 if !state.inactives().is_empty() && *state.current() == AppState::Menu {
                     state.overwrite_pop().unwrap();
                 }
@@ -114,6 +115,11 @@ impl ButtonAction {
                 |o: &MemoryGOpts| o.mode.combo,
                 |o: &mut MemoryGOpts| &mut o.mode.combo,
             )),
+            Duel => Check(CheckBox::new(
+                self.name(),
+                |o: &MemoryGOpts| o.mode.duel,
+                |o: &mut MemoryGOpts| &mut o.mode.duel,
+            )),
         }
     }
 }
@@ -124,7 +130,7 @@ struct MenuUI;
 #[derive(Component)]
 #[component(storage = "SparseSet")]
 struct MenuGOpts;
-#[autodefault]
+#[autodefault(except(Text))]
 fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
     // Make list of buttons
     let buttons: Vec<Vec<ResourceMap>> = vec![
@@ -133,8 +139,12 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
             .iter()
             .map(|x| ButtonAction::Mode(*x).into())
             .collect(),
-        vec![ButtonAction::FullPlate.into(), ButtonAction::Combo.into()],
-        vec![ButtonAction::Apply.into(), ButtonAction::Save.into()],
+        vec![
+            ButtonAction::FullPlate.into(),
+            ButtonAction::Combo.into(),
+            ButtonAction::Duel.into(),
+        ],
+        vec![ButtonAction::Apply.into(), ButtonAction::OK.into()],
     ];
     let p = |parent: &mut ChildBuilder| {
         for lr in buttons {
@@ -166,7 +176,7 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
             text: Text {
                 sections:vec![
                     materials.write_strings("",1.,Color::WHITE),
-                    materials.write_strings("\nNote: Press Apply to start a new Game with above Options,\nelse just Save and exit Menu",0.7,Color::WHITE),
+                    materials.write_strings("\nNote: Press Apply to start a new Game with above Options,\nelse just OK and exit Menu",0.7,Color::WHITE),
                 ],
                 alignment: TextAlignment {
                     horizontal: HorizontalAlign::Center,
@@ -188,13 +198,16 @@ fn apply_options(mut query: Query<&mut Text, With<MenuGOpts>>, opts: Res<MemoryG
     let mut opt = query.single_mut();
     if opts.is_changed() {
         opt.sections[0].value = format!(
-            "Rule: {:?}\nCombo: {}\nFull Plate: {}",
-            opts.mode.rule, opts.mode.combo, opts.mode.full_plate
+            "Rule: {:?}\nCombo: {} Full Plate: {} Duel: {}",
+            opts.mode.rule, opts.mode.combo, opts.mode.full_plate, opts.mode.duel
         );
     }
 }
 #[autodefault]
-fn setup_ui(mut cmd: Commands, materials: Res<MenuMaterials>/*, board_options: Res<MemoryGOpts>*/) {
+fn setup_ui(
+    mut cmd: Commands,
+    materials: Res<MenuMaterials>, /*, board_options: Res<MemoryGOpts>*/
+) {
     /* TODO refractor Instructions into another window
     let mode = board_options.mode;
     cmd.spawn_bundle(NodeBundle {

@@ -122,7 +122,7 @@ pub fn deck_complete(
     materials: Res<MenuMaterials>,
     mut animate_evr: EventReader<TweenCompleted>,
 ) {
-    if deck.outcome().is_some() && local.is_none() {
+    if deck.completed() && local.is_none() {
         let mut text = materials.button_text("Deck Completed!!!");
         text.node.style = Style {
             position_type: PositionType::Absolute,
@@ -174,5 +174,6 @@ pub fn deck_complete(
 
     if animate_evr.iter().any(|&x| x.user_data == std::u64::MAX) {
         cmd.entity(local.unwrap()).despawn_recursive();
+        *local = None
     }
 }

@@ -11,8 +11,8 @@ use {
     },
 };
 
-const CARD_MASK:u8 = (1<<7) -1;
-const OWN_MASK:u16 = 3<<7;
+const CARD_MASK: u8 = (1 << 7) - 1;
+const OWN_MASK: u16 = 3 << 7;
 
 /// Game Modes
 /// Variants
@@ -54,7 +54,7 @@ impl Default for Mode {
 #[derive(Debug, Clone)]
 pub struct Deck {
     mode: Mode,
-    /// Map of cards, where each entry is 
+    /// Map of cards, where each entry is
     /// card with its value in 7 bits,
     /// player who opened it in 2 bits,
     /// number of times opened in 7 bits.
@@ -130,11 +130,12 @@ impl Deck {
             players: (0, players),
             outcome: None,
             opened: vec![],
-            scores: vec![0;players as usize],
+            scores: vec![0; players as usize],
         }
     }
     #[inline]
     fn match_found(&self) -> bool {
+        if self.opened.len() == 1 {return false}
         let l = self.get_card(self.opened[0]);
         let r = self.get_card(self.opened[1]);
         // println!("{l} {r}");
@@ -148,8 +149,14 @@ impl Deck {
         }
     }
 
-    pub fn next_player(&self) -> u8 {
-        (self.players.0 + 1) % self.players.1
+    pub fn set_next_player(&mut self) {
+        if self.completed() {return}
+        let end_turn = self.opened.len() == 2;
+        let duel = self.mode.duel;
+        let combo = end_turn && self.match_found() && self.mode.combo;
+        if end_turn && !(combo ^ duel) || !end_turn && duel {
+            self.players.0 = (self.players.0 + 1) % self.players.1
+        }
     }
 
     pub fn is_revealed(&self, mv: usize) -> bool {
@@ -160,7 +167,7 @@ impl Deck {
     }
 
     pub fn play(&mut self, mv: usize) {
-        assert!(self.outcome.is_none());
+        assert!(!self.completed());
         assert!(
             self.is_available_move(mv),
             "{:?} is not available on {:?}",
@@ -173,40 +180,35 @@ impl Deck {
 
         // println!("played: {mv}, card: {}, players: {:?}",self[mv],self.players);
         self.opened.push(mv);
-        self[mv] += 1<<9;
+        self[mv] += 1 << 9;
 
-        if self.opened.len() == 2 {
-            if self.match_found() {
-                let player = (self.player() as u16 + 1) << 7; 
-                let pmv = self.opened[0];
-                self[pmv] += player;
-                self[mv]  += player;
-                let outcome = self.iter().all(|&x| (x & 3 <<7) > 0);
-                if outcome || self.get_count(mv) > 1 {
-                    let score = self.get_count(pmv) + self.get_count(mv);
-                    let player = self.player() as usize;
-                    self.scores[player] += score as u16;
-                }
-                if outcome {
-                    let s0 = self.scores[0];
-                    let s1 = self.scores[1];
-                    self.outcome = Some(if s0 > s1 {
-                        0
-                    } else {1});
-                }
-                if !self.mode.combo {
-                    self.players.0 = self.next_player();
-                }
-            } else {
-                self.players.0 = self.next_player();
+        if self.opened.len() == 2 && self.match_found() {
+            let player = (self.player() as u16 + 1) << 7;
+            let pmv = self.opened[0];
+            self[pmv] += player;
+            self[mv] += player;
+            let outcome = self.iter().all(|&x| (x & 3 << 7) > 0);
+            if outcome || self.get_count(mv) > 1 {
+                let score = self.get_count(pmv) + self.get_count(mv);
+                let player = self.player() as usize;
+                self.scores[player] += score as u16;
+            }
+            if outcome {
+                let s0 = self.scores[0];
+                let s1 = self.scores[1];
+                self.outcome = Some(if s0 > s1 { 0 } else { 1 });
             }
         }
+        self.set_next_player()
     }
 
     pub fn player(&self) -> u8 {
         self.players.0
     }
 
+    pub fn completed(&self) -> bool {
+        self.outcome.is_some()
+    }
     pub fn outcome(&self) -> Option<u8> {
         self.outcome
     }
@@ -215,7 +217,7 @@ impl Deck {
         self[idx]
     }
     pub fn get_owner(&self, idx: usize) -> u8 {
-        ((self[idx] & OWN_MASK) >> 7)as u8
+        ((self[idx] & OWN_MASK) >> 7) as u8
     }
     pub fn get_card(&self, idx: usize) -> u8 {
         self[idx] as u8 & CARD_MASK

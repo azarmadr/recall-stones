@@ -99,7 +99,7 @@ pub fn if_deck_not_done(deck: Option<Res<Deck>>) -> ShouldRun {
             return ShouldRun::Yes;
         }
     }
-    return ShouldRun::No;
+    ShouldRun::No
 }
 pub fn show_board(mut cmd: Commands, board: Query<Entity, With<Board>>) {
     cmd.entity(board.single()).insert(Animator::new(Tween::new(
@@ -118,7 +118,7 @@ pub fn hide_board(mut cmd: Commands, board: Query<Entity, With<Board>>) {
     )));
 }
 /// System to generate the complete board
-#[autodefault(except(Board, TransformScaleLens))]
+#[autodefault(except(Board, TransformScaleLens, Size, Text, TextAlignment))]
 pub fn create_board(
     mut cmd: Commands,
     material: Res<MenuMaterials>,
