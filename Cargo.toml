@@ -1,6 +1,6 @@
 [package]
 name = "recall-stones"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["Shaik Azhar Madar <azarmadr@pm.me>"]
 edition = "2021"
 
