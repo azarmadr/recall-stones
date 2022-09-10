@@ -38,10 +38,6 @@ canvas {
   <!-- <link data-trunk rel="copy-dir" href="credits"/> -->
   <!-- <link rel="icon" href="icon.ico"> -->
   <script> function resizeCanvas(){ } </script>
-
-<link rel="preload" href="/recall-stones/recall-stones-d64145e41ccdcea0_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/recall-stones/recall-stones-d64145e41ccdcea0.js"></head>
-<body onresize="resizeCanvas()">
 <script type="module">
     import init from './recall-stones.js'
 
@@ -50,15 +46,10 @@ canvas {
         evt.preventDefault();
     })
 </script>
+<link rel="preload" href="/recall-stones/recall-stones-b8044312aef281ee_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/recall-stones/recall-stones-b8044312aef281ee.js"></head>
+
 <!-- <canvas tabindex="0" data-raw-handle="1" alt="Recall Stones! - A Concentration Game" cursor="auto"></canvas> -->
-<script>
-  let canvas = document.querySelector`canvas`
-  canvas.onfocus = _=>{
-      console.log(canvas.style)
-      //canvas.style = '';
-      delete canvas.onfocus
-    }
-</script>
+<body>
 
-
-<script type="module">import init from '/recall-stones/recall-stones-d64145e41ccdcea0.js';init('/recall-stones/recall-stones-d64145e41ccdcea0_bg.wasm');</script></body></html>
+<script type="module">import init from '/recall-stones/recall-stones-b8044312aef281ee.js';init('/recall-stones/recall-stones-b8044312aef281ee_bg.wasm');</script></body></html>
