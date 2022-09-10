@@ -14,7 +14,7 @@ debug = ["menu-plugin/debug","memory/debug", "bevy-inspector-egui"]
 enum_dispatch = "0.3"
 autodefault = "2.0.0"
 memory = { path = "memory"}
-menu-plugin = {path = "menu-plugin"}
+menu-plugin = {git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git"}
 
 # Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]
@@ -46,7 +46,6 @@ web-sys = "0.3"
 [workspace]
 members = [
   "memory",
-  "menu-plugin",
 ]
 resolver = "2"
 

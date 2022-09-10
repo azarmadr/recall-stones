@@ -1794,6 +1794,7 @@ dependencies = [
 [[package]]
 name = "menu-plugin"
 version = "0.1.0"
+source = "git+https://github.com/azarmadr/bevy-ui-menu-plugin.git#f24734a6f9405ebfea061242aff3ed578b718739"
 dependencies = [
  "autodefault",
  "bevy",

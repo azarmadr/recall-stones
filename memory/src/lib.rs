@@ -191,7 +191,6 @@ pub fn create_board(
             .with_children(|p| {
                 for j in 0..count {
                     let (i, &card) = card_iter.next().unwrap();
-                    let id = Idx(i, 0);
                     p.spawn_bundle(assets.board.node(Style {
                         min_size: Size {
                             width: Val::Px(size),
@@ -211,7 +210,7 @@ pub fn create_board(
                         ))
                         .insert(Animator::new(seq(j)))
                         .insert(Name::new(format!("Card {:?}", i)))
-                        .insert(id)
+                        .insert(Idx(i, 0))
                         .with_children(|p| {
                             p.spawn_bundle(assets.spawn_card(card, size))
                                 .insert(Name::new("Card"));

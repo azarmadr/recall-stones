@@ -15,7 +15,6 @@
   <!-- <link rel="icon" href="icon.ico"> -->
   <script> function resizeCanvas(){ } </script>
 </head>
-<body onresize="resizeCanvas()">
 <script type="module">
     import init from './recall-stones.js'
 
@@ -25,13 +24,5 @@
     })
 </script>
 <!-- <canvas tabindex="0" data-raw-handle="1" alt="Recall Stones! - A Concentration Game" cursor="auto"></canvas> -->
-<script>
-  let canvas = document.querySelector`canvas`
-  canvas.onfocus = _=>{
-      console.log(canvas.style)
-      //canvas.style = '';
-      delete canvas.onfocus
-    }
-</script>
 </body>
 </html>

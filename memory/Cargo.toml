@@ -17,8 +17,7 @@ autodefault = "2.0.0"
 duplicate = "0.4"
 enum_dispatch = "0.3"
 bevy_tweening = "0.5"
-menu-plugin = {path = "../menu-plugin"}
-#mat = {path = "mat"}
+menu-plugin = {git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git"}
 
 # Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]
