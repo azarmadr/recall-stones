@@ -34,7 +34,6 @@ pub fn rot_seq(duration: std::time::Duration) -> Sequence<Transform> {
     let tween = |start, end| {
         Tween::new(
             EaseFunction::QuadraticIn,
-            TweeningType::Once,
             duration,
             TransformRotateYLens { start, end },
         )
@@ -44,7 +43,6 @@ pub fn rot_seq(duration: std::time::Duration) -> Sequence<Transform> {
 pub fn vis_seq(duration: std::time::Duration, show: bool) -> Tween<Visibility> {
     Tween::new(
         EaseFunction::QuadraticIn,
-        TweeningType::Once,
         2 * duration,
         BeTween::with_lerp(move |c: &mut Visibility, _, r| c.is_visible = show ^ (r < 0.5)),
     )
@@ -53,7 +51,6 @@ pub fn shake_seq(duration: std::time::Duration) -> Sequence<Transform> {
     let tween = |s, e, i| {
         Tween::new(
             EaseFunction::ElasticInOut,
-            TweeningType::Once,
             duration * i / 3,
             BeTween::with_lerp(move |c: &mut Transform, _, r| {
                 c.rotation = Quat::from_rotation_z(s + (e - s) * r)

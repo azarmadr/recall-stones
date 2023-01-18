@@ -1,9 +1,9 @@
 use bevy::prelude::*;
-#[cfg(feature = "debug")]
+#[cfg(feature = "dev")]
 use bevy_inspector_egui::{InspectorPlugin, WorldInspectorPlugin};
 use menu_plugin::*;
 
-#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
+#[cfg_attr(feature = "dev", derive(bevy_inspector_egui::Inspectable))]
 struct A(u8, u8);
 impl MenuItem for A {
     type Attributes = ();
@@ -28,9 +28,7 @@ impl MenuItem for A {
                 ..default()
             },
         );
-        cmd.spawn_bundle(m.button_border())
-            .push_children(&[e0, e1])
-            .id()
+        cmd.spawn(m.button_border()).push_children(&[e0, e1]).id()
     }
     fn system(&mut self, e: Entity, m: &MenuMaterials, world: &mut World) {
         let mut ch = world.query::<&mut Children>();
@@ -54,7 +52,7 @@ fn main() {
     .add_plugin(MenuPlugin::<A>(std::marker::PhantomData))
     .add_startup_system(startup);
     // Debug hierarchy inspector
-    #[cfg(feature = "debug")]
+    #[cfg(feature = "dev")]
     app.add_plugin(WorldInspectorPlugin::new())
         .add_plugin(InspectorPlugin::<u8>::new())
         .add_plugin(InspectorPlugin::<A>::new_insert_manually())
@@ -62,5 +60,5 @@ fn main() {
     app.run();
 }
 fn startup(mut commands: Commands) {
-    commands.spawn_bundle(Camera3dBundle::default());
+    commands.spawn(Camera3dBundle::default());
 }

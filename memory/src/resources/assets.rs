@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::render::texture::DEFAULT_IMAGE_HANDLE;
 
 /// Material of a `Sprite` with a texture and color
-#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
+#[cfg_attr(feature = "dev", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Clone)]
 pub struct SpriteMaterial {
     pub color: Color,
@@ -24,16 +24,16 @@ impl SpriteMaterial {
     pub fn node(&self, style: Style) -> NodeBundle {
         NodeBundle {
             style,
-            color: self.color.into(),
-            image: self.texture.clone().into(),
+            background_color: self.color.into(),
+            // image: self.texture.clone().into(),
         }
     }
+    #[autodefault::autodefault]
     pub fn button(&self, style: Style) -> ButtonBundle {
         ButtonBundle {
             style,
-            color: self.color.into(),
+            background_color: self.color.into(),
             image: self.texture.clone().into(),
-            ..Default::default()
         }
     }
 }
@@ -48,8 +48,8 @@ impl Default for SpriteMaterial {
 /// Assets for the board. Must be used as a resource.
 ///
 /// Use the loader for partial setup
-#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
-#[derive(Debug, Clone)]
+#[cfg_attr(feature = "dev", derive(bevy_inspector_egui::Inspectable))]
+#[derive(Debug, Clone, Resource)]
 pub struct MemoryGAssts {
     pub board: SpriteMaterial,
     pub card: [(SpriteMaterial, SpriteMaterial); 2],
@@ -133,7 +133,7 @@ impl MemoryGAssts {
             ..Default::default()
         }
     }
-    pub fn flip_card_color(&self, mut color: &mut UiColor, visibility: bool) {
+    pub fn flip_card_color(&self, mut color: &mut BackgroundColor, visibility: bool) {
         color.0 = match visibility {
             true => {
                 if color.0 == self.card[0].0.color {

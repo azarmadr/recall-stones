@@ -6,23 +6,24 @@ edition = "2021"
 
 [features]
 default = []
-debug = ["menu-plugin/debug","memory/debug", "bevy-inspector-egui"]
-
+dev = ["menu-plugin/dev", "memory/dev", "bevy-inspector-egui"]
 
 [dependencies]
-# bevy = { git = "https://github.com/bevyengine/bevy", rev = "b697e73c3d861c209152ccfb140ae00fbc6e9925", features = ["dynamic"] }
-enum_dispatch = "0.3"
+menu-plugin = { git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git" }
+memory = { path = "memory" }
+bevy = { workspace = true }
+
+[workspace.dependencies]
 autodefault = "2.0.0"
-memory = { path = "memory"}
-menu-plugin = {git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git"}
+enum_dispatch = "0.3"
 
 # Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]
-version = "0.12"
+version = "0.15"
 optional = true
 
-[dependencies.bevy]
-version = "0.8"
+[workspace.dependencies.bevy]
+version = "0.9.1"
 default-features = false
 features = [
   "bevy_render",        # Rendering framework core
@@ -35,18 +36,16 @@ features = [
 
 # Dependencies for native only.
 [target.'cfg(target_os = "linux")'.dependencies.bevy]
-version = "0.8"
+version = "0.9"
 default-features = false
-features = ["dynamic","x11"]
+features = ["dynamic", "x11"]
 
 # Dependencies for WASM only.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = "0.3"
 
 [workspace]
-members = [
-  "memory",
-]
+members = ["memory"]
 resolver = "2"
 
 # Enable optimizations for dependencies (incl. Bevy), but not for our code:
@@ -71,7 +70,12 @@ name = "android"
 path = "src/main.rs"
 
 [package.metadata.android]
-build_targets = [ "armv7-linux-androideabi", "aarch64-linux-android", "i686-linux-android", "x86_64-linux-android" ]
+build_targets = [
+  "armv7-linux-androideabi",
+  "aarch64-linux-android",
+  "i686-linux-android",
+  "x86_64-linux-android",
+]
 resources = "assets/android-res"
 assets = "assets"
 apk_name = "Recall Stones"

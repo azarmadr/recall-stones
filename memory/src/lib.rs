@@ -12,7 +12,7 @@ use {
 };
 pub use {components::Player, events::*, resources::*};
 
-#[cfg(feature = "debug")]
+#[cfg(feature = "dev")]
 use {bevy::log, bevy_inspector_egui::InspectorPlugin};
 
 pub mod components;
@@ -24,7 +24,7 @@ pub mod tween;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
-    InGame,
+    Game,
     Splash,
     Menu,
 }
@@ -44,37 +44,36 @@ impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
     fn build(&self, app: &mut App) {
         app.add_state(AppState::Splash)
             .add_plugin(TweeningPlugin)
-            .add_system_set(SystemSet::on_enter(InGame).with_system(create_board))
+            .add_system_set(SystemSet::on_enter(Game).with_system(create_board))
             .add_system_set(
-                SystemSet::on_update(InGame)
-                    .with_system(systems::deck_complete.exclusive_system().at_end())
+                SystemSet::on_update(Game)
+                    .with_system(systems::deck_complete.at_end())
                     .with_system(systems::turn)
                     .with_system(systems::score_board),
             )
             .add_system_set(
-                SystemSet::on_in_stack_update(InGame)
+                SystemSet::on_in_stack_update(Game)
                     .with_system(systems::uncover)
                     .with_system(systems::card_flip),
             )
-            .add_system_set(SystemSet::on_pause(InGame).with_system(hide_board))
-            .add_system_set(SystemSet::on_resume(InGame).with_system(show_board))
-            .add_system_set(SystemSet::on_exit(InGame).with_system(despawn::<Board>))
-            .add_system_set(SystemSet::on_exit(InGame).with_system(despawn::<ScoreBoard>))
+            .add_system(board_display)
+            .add_system_set(SystemSet::on_exit(Game).with_system(despawn::<Board>))
+            .add_system_set(SystemSet::on_exit(Game).with_system(despawn::<ScoreBoard>))
             .add_system(component_animator_system::<Visibility>)
             .init_resource::<MemoryGAssts>()
-            .add_system(component_animator_system::<UiColor>)
+            .add_system(component_animator_system::<BackgroundColor>)
             .add_plugin(MenuPlugin {
-                game: InGame,
+                game: Game,
                 menu: Menu,
             })
             .add_system_set(SystemSet::on_enter(**self).with_system(splash_off))
             .add_system_set(SystemSet::on_in_stack_update(**self).with_system(on_completion))
             .add_system_set(SystemSet::on_exit(**self).with_system(splash_on))
             .init_resource::<MemoryGOpts>();
-        #[cfg(feature = "debug")]
+        #[cfg(feature = "dev")]
         {
             app
-                .add_plugin(InspectorPlugin::<Deck>::new())
+                // .add_plugin(InspectorPlugin::<Deck>::new())
                 .add_plugin(InspectorPlugin::<MemoryGOpts>::new())
                 // .add_plugin(InspectorPlugin::<MemoryGAssts>::new())
                 ;
@@ -101,21 +100,16 @@ pub fn if_deck_not_done(deck: Option<Res<Deck>>) -> ShouldRun {
     }
     ShouldRun::No
 }
-pub fn show_board(mut cmd: Commands, board: Query<Entity, With<Board>>) {
-    cmd.entity(board.single()).insert(Animator::new(Tween::new(
-        EaseFunction::ElasticInOut,
-        TweeningType::Once,
-        std::time::Duration::from_millis(81),
-        BeTween::with_lerp(|c: &mut Transform, _, r| c.scale = Vec3::ZERO.lerp(Vec3::ONE, r)),
-    )));
-}
-pub fn hide_board(mut cmd: Commands, board: Query<Entity, With<Board>>) {
-    cmd.entity(board.single()).insert(Animator::new(Tween::new(
-        EaseFunction::ElasticInOut,
-        TweeningType::Once,
-        std::time::Duration::from_millis(81),
-        BeTween::with_lerp(|c: &mut Transform, _, r| c.scale = Vec3::ONE.lerp(Vec3::ZERO, r)),
-    )));
+pub fn board_display(
+    mut board: Query<&mut Style, Or<(With<Board>, With<ScoreBoard>)>>,
+    state: Res<State<AppState>>,
+) {
+    board.for_each_mut(|mut style| {
+        style.display = match state.current() {
+            AppState::Game => Display::Flex,
+            _ => Display::None,
+        }
+    })
 }
 /// System to generate the complete board
 #[autodefault(except(Board, TransformScaleLens, Size, Text, TextAlignment))]
@@ -133,16 +127,15 @@ pub fn create_board(
     let deck = Deck::init(opts.deck_params(), opts.mode, players.len() as u8);
     // let size = opts.card_size(deck_width, deck_width);
     let size = material.size / deck_width.max(2. * (count as f32 / deck_width).ceil()) * 0.77;
-    #[cfg(feature = "debug")]
+    #[cfg(feature = "dev")]
     {
         log::info!("{deck}");
         log::info!("size {size}\ndeck_width {deck_width}");
     }
     let width = (deck_width + 0.3) * (size + 2.);
     let seq = |i| {
-        Delay::new(Duration::from_millis(i as u64 * 81)).then(Tween::new(
+        Delay::new(Duration::from_millis(27 + i as u64 * 81)).then(Tween::new(
             EaseFunction::BounceOut,
-            TweeningType::Once,
             Duration::from_millis(243),
             TransformScaleLens {
                 start: Vec3::splat(0.27),
@@ -150,10 +143,10 @@ pub fn create_board(
             },
         ))
     };
-    cmd.spawn_bundle(assets.back_ground.node(Style {
+    cmd.spawn(assets.back_ground.node(Style {
         position_type: PositionType::Absolute,
         size: Size::new(Val::Percent(100.), Val::Percent(100.)),
-        flex_direction: FlexDirection::ColumnReverse,
+        flex_direction: FlexDirection::Column,
         justify_content: JustifyContent::Center,
         align_items: AlignItems::Center,
         align_self: AlignSelf::Center,
@@ -163,12 +156,12 @@ pub fn create_board(
     .with_children(|p| {
         let mut card_iter = deck.iter().enumerate();
         for half in 0..2u8 {
-            p.spawn_bundle(assets.back_ground.node(Style {
+            p.spawn(assets.back_ground.node(Style {
                 flex_basis: Val::Px(0.),
                 flex_wrap: if half == 0 {
-                    FlexWrap::Wrap
-                } else {
                     FlexWrap::WrapReverse
+                } else {
+                    FlexWrap::Wrap
                 },
                 flex_grow: 0.5,
                 flex_direction: FlexDirection::Row,
@@ -187,11 +180,11 @@ pub fn create_board(
                 },
                 size: Size::new(Val::Px(width), Val::Percent(100.0)),
             }))
-            .insert(Name::new(format!("Half: {}", half)))
+            .insert(Name::new(format!("Half: {half}")))
             .with_children(|p| {
                 for j in 0..count {
                     let (i, &card) = card_iter.next().unwrap();
-                    p.spawn_bundle(assets.board.node(Style {
+                    p.spawn(assets.board.node(Style {
                         min_size: Size {
                             width: Val::Px(size),
                             height: Val::Px(size),
@@ -199,20 +192,18 @@ pub fn create_board(
                     }))
                     .insert(Name::new("Board Color"))
                     .with_children(|p| {
-                        p.spawn_bundle(assets.card[if card > 55 { 1 } else { 0 }].0.button(
-                            Style {
-                                margin: UiRect::all(Val::Px(1.0)),
-                                min_size: Size {
-                                    width: Val::Px(size),
-                                    height: Val::Px(size),
-                                },
+                        p.spawn(assets.card[if card > 55 { 1 } else { 0 }].0.button(Style {
+                            margin: UiRect::all(Val::Px(1.0)),
+                            min_size: Size {
+                                width: Val::Px(size),
+                                height: Val::Px(size),
                             },
-                        ))
+                        }))
                         .insert(Animator::new(seq(j)))
-                        .insert(Name::new(format!("Card {:?}", i)))
+                        .insert(Name::new(format!("Card {i:?}")))
                         .insert(Idx(i, 0))
                         .with_children(|p| {
-                            p.spawn_bundle(assets.spawn_card(card, size))
+                            p.spawn(assets.spawn_card(card, size))
                                 .insert(Name::new("Card"));
                         });
                     });
@@ -220,7 +211,7 @@ pub fn create_board(
             });
         }
     });
-    cmd.spawn_bundle(assets.back_ground.node(Style {
+    cmd.spawn(assets.back_ground.node(Style {
         position_type: PositionType::Absolute,
         flex_basis: Val::Px(0.),
         flex_shrink: 0.,
@@ -258,26 +249,26 @@ pub fn create_board(
                     },
                 },
             };
-            p.spawn_bundle(assets.board.node(Style {
+            p.spawn(assets.board.node(Style {
                 flex_direction: FlexDirection::ColumnReverse,
                 justify_content: JustifyContent::Center,
                 align_content: AlignContent::FlexStart,
             }))
             .with_children(|p| {
-                p.spawn_bundle(text_bundle(format!(
+                p.spawn(text_bundle(format!(
                     "{} {n}\nOpened: 0\nTurns: 0",
                     if pl.is_bot() { "Bot" } else { "Human" },
                 )))
                 .insert(*pl);
                 /*
-                p.spawn_bundle(assets.board.node(Style {}))
+                p.spawn(assets.board.node(Style {}))
                 .with_children(|p| {
                     for &key in ["Score", "Opened", "Turns"].iter() {
-                        p.spawn_bundle(assets.board.node(Style {
+                        p.spawn(assets.board.node(Style {
                             flex_basis: Val::Px(0.)
                         }))
                             .with_children(|p| {
-                                p.spawn_bundle(text_bundle(key.to_string()));
+                                p.spawn(text_bundle(key.to_string()));
                             });
                     }
                 });
@@ -311,8 +302,8 @@ fn on_completion(
         state.push(AppState::Menu).unwrap();
         timer.reset();
     }
-    if timer.tick(time.delta()).just_finished() && state.current() != &AppState::InGame {
-        state.replace(AppState::InGame).unwrap();
+    if timer.tick(time.delta()).just_finished() && state.current() != &AppState::Game {
+        state.replace(AppState::Game).unwrap();
     }
     // a loading item can be added TODO
 }

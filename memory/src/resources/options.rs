@@ -1,22 +1,23 @@
 use {
     super::{MatchRules::*, Mode},
     crate::components::*,
+    bevy::prelude::*,
     rand::{distributions::WeightedIndex, prelude::*},
     serde::{Deserialize, Serialize},
 };
 
 /// Board generation options. Must be used as a resource
 // We use serde to allow saving option presets and loading them at runtime
-#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "dev", derive(bevy_inspector_egui::Inspectable))]
+#[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 pub struct MemoryGOpts {
     /// Padding between cards
     pub card_padding: f32,
     /// Game Mode
     pub mode: Mode,
-    #[cfg_attr(feature = "debug", inspectable(min = 0, max = 5))]
+    #[cfg_attr(feature = "dev", inspectable(min = 0, max = 5))]
     pub level: u8,
-    //#[cfg_attr(feature="debug",inspectable(min = (1,0), max = (2,1)))]
+    //#[cfg_attr(feature="dev",inspectable(min = (1,0), max = (2,1)))]
     pub players: (u8, u8),
 }
 impl Default for MemoryGOpts {

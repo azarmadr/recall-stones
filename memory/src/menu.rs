@@ -43,7 +43,7 @@ fn despawn<T: Component>(mut cmd: Commands, query: Query<Entity, With<T>>) {
 }
 
 /// Button action type
-//#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
+//#[cfg_attr(feature = "dev", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Component)]
 pub enum ButtonAction {
     Level,
@@ -61,8 +61,8 @@ pub use ButtonAction::*;
 impl ButtonAction {
     pub fn name(&self) -> String {
         match self {
-            Mode(x) => format!("{:?}", x),
-            _ => format!("{:?}", self),
+            Mode(x) => format!("{x:?}"),
+            _ => format!("{self:?}"),
         }
     }
     #[autodefault]
@@ -77,7 +77,7 @@ impl ButtonAction {
         match self {
             Apply => StateRes(Action::new(self.name(), |state: &mut State<AppState>| {
                 if *state.current() == AppState::Menu {
-                    state.overwrite_replace(AppState::InGame).unwrap();
+                    state.overwrite_replace(AppState::Game).unwrap();
                 }
             })),
             OK => StateRes(Action::new(self.name(), |state: &mut State<AppState>| {
@@ -86,7 +86,7 @@ impl ButtonAction {
                 }
             })),
             Menu => StateRes(Action::new(self.name(), |state: &mut State<AppState>| {
-                if *state.current() == AppState::InGame {
+                if *state.current() == AppState::Game {
                     state.overwrite_push(AppState::Menu).unwrap();
                 }
             })),
@@ -150,7 +150,7 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
         for lr in buttons {
             let mut menu = materials.menu_lr();
             menu.node.style.flex_wrap = FlexWrap::Wrap;
-            parent.spawn_bundle(menu).with_children(|parent| {
+            parent.spawn(menu).with_children(|parent| {
                 for button in lr {
                     button.spawn(parent, &materials)
                 }
@@ -160,19 +160,19 @@ fn setup_menu(mut cmd: Commands, materials: Res<MenuMaterials>) {
     let mut menu_border = materials.border();
     menu_border.node.style.max_size.width = Val::Percent(81.);
     cmd
-        .spawn_bundle(materials.root())
+        .spawn(materials.root())
         .insert(MenuUI)
         .insert(Name::new("MenuUI"))
         .with_children(|parent| {
             parent
-                .spawn_bundle(menu_border)
+                .spawn(menu_border)
                 .with_children(|parent| {
                     parent
-                        .spawn_bundle(materials.menu_td())
+                        .spawn(materials.menu_td())
                         .with_children(|parent| {
                             p(parent);
                             parent
-                                .spawn_bundle(TextBundle {
+                                .spawn(TextBundle {
             text: Text {
                 sections:vec![
                     materials.write_strings("",1.,Color::WHITE),
@@ -210,7 +210,7 @@ fn setup_ui(
 ) {
     /* TODO refractor Instructions into another window
     let mode = board_options.mode;
-    cmd.spawn_bundle(NodeBundle {
+    cmd.spawn(NodeBundle {
         style: Style {
             size: Size::new(Val::Percent(100.), Val::Px(150.)),
             align_items: AlignItems::Center,
@@ -223,7 +223,7 @@ fn setup_ui(
     .insert(Name::new("Instructions"))
     .insert(UI)
     .with_children(|parent| {
-        parent.spawn_bundle(TextBundle {
+        parent.spawn(TextBundle {
             text: Text {
                 sections: vec![
                     materials.write_strings("Instructions:", 27., Color::WHITE),
@@ -243,7 +243,7 @@ fn setup_ui(
     });
     */
     // Players
-    cmd.spawn_bundle(NodeBundle {
+    cmd.spawn(NodeBundle {
         style: Style {
             size: Size::new(Val::Percent(100.), Val::Undefined),
             align_items: AlignItems::Center,
@@ -251,16 +251,16 @@ fn setup_ui(
             justify_content: JustifyContent::FlexStart,
             border: UiRect::all(Val::Px(8.0)),
         },
-        color: materials.border.into(),
+        background_color: materials.border.into(),
     })
     .insert(UI)
     .insert(Name::new("UI"))
     .with_children(|p| {
         ButtonAction::Menu.into().spawn(p, &materials);
         /*
-        p.spawn_bundle(materials.menu_td()).with_children(|parent| {
+        p.spawn(materials.menu_td()).with_children(|parent| {
             parent
-                .spawn_bundle(TextBundle {
+                .spawn(TextBundle {
                     style: Style {
                         align_self: AlignSelf::Baseline,
                         size: Size::new(Val::Auto, Val::Percent(100.0)),

@@ -4,32 +4,20 @@ version = "0.1.0"
 authors = ["Shaik Azhar Madar <azarmadr@pm.me>"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [features]
 default = []
-debug = ["bevy-inspector-egui"]
+dev = ["bevy-inspector-egui", "menu-plugin/dev"]
 
 [dependencies]
 serde = "1.0"
 rand = "0.8"
-autodefault = "2.0.0"
 duplicate = "0.4"
-enum_dispatch = "0.3"
-bevy_tweening = "0.5"
-menu-plugin = {git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git"}
+bevy_tweening = "0.6.0"
+menu-plugin = { git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git" }
+bevy = { workspace = true }
+autodefault = { workspace = true }
+enum_dispatch = { workspace = true }
 
-# Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]
-version = "0.12"
+version = "0.15"
 optional = true
-
-# Engine
-[dependencies.bevy]
-version = "0.8"
-default-features = false
-features = [
-  "bevy_render",        # Rendering framework core
-  "bevy_text",          # Text/font rendering
-  "bevy_ui",            # UI toolkit
-]

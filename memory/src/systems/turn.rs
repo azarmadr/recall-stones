@@ -1,4 +1,6 @@
-use bevy_tweening::{Animator, EaseFunction, Tween, TweeningType};
+use std::time::Duration;
+
+use bevy_tweening::{Animator, EaseFunction, Tween};
 
 use crate::tween::BeTween;
 
@@ -11,21 +13,17 @@ use {
     // bevy::log::prelude::info,
 };
 
-#[derive(Deref, DerefMut)]
-pub struct AiTimer(Timer);
-impl Default for AiTimer {
-    fn default() -> Self {
-        AiTimer(Timer::from_seconds(0.5, false))
-    }
-}
 /// Whether the ai or human, get the index of the move and add `Open` Component to that entity
 pub fn turn(
     mut players: Query<&mut Player>,
     time: Res<Time>,
-    mut timer: Local<AiTimer>,
+    mut timer: Local<Timer>,
     mut deck: ResMut<Deck>,
     mut cards: Query<(&mut Idx, &Interaction, ChangeTrackers<Interaction>)>,
 ) {
+    if timer.duration() == Duration::ZERO {
+        *timer = Timer::new(Duration::from_millis(1729), TimerMode::Repeating);
+    }
     let mut player = players
         .iter_mut()
         .find(|pl| deck.player() == pl.deref().0)
@@ -69,16 +67,15 @@ pub fn score_board(
             let is_player = player.id() == deck.player();
             cmd.entity(**parent).insert(Animator::new(Tween::new(
                 EaseFunction::QuadraticIn,
-                TweeningType::Once,
                 ROT_TIME * 2,
-                BeTween::with_lerp(move |c: &mut UiColor, _, r| {
+                BeTween::with_lerp(move |c: &mut BackgroundColor, _, r| {
                     let end = if is_player {
                         Color::GREEN
                     } else {
                         Color::WHITE
                     };
                     let start: Vec4 = c.0.into();
-                    *c = UiColor(start.lerp(end.into(), r).into());
+                    *c = BackgroundColor(start.lerp(end.into(), r).into());
                 }),
             )));
             let mut text = text.get_mut(entity).unwrap();

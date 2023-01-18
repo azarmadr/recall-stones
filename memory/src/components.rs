@@ -68,8 +68,8 @@ impl Player {
     }
     pub fn id(&self) -> u8 {
         match self {
-            Player::Flesh(Flesh(x,_)) => *x,
-            Player::Bolts(Bolts(x,_)) => *x,
+            Player::Flesh(Flesh(x, _)) => *x,
+            Player::Bolts(Bolts(x, _)) => *x,
         }
     }
     pub fn is_bot(&self) -> bool {

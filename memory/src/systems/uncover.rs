@@ -5,7 +5,7 @@ use {bevy::prelude::*, std::time::Duration};
 
 pub(crate) const ROT_TIME: Duration = Duration::from_millis(81);
 pub fn card_flip(
-    mut cards: Query<&mut UiColor, With<Idx>>,
+    mut cards: Query<&mut BackgroundColor, With<Idx>>,
     vis: Query<(&Parent, &Visibility), With<Animator<Visibility>>>,
     assets: Res<MemoryGAssts>,
 ) {
@@ -91,7 +91,7 @@ pub fn uncover(
                         if let Ok(children) = children.get(entity) {
                             children.iter().for_each(|&child| {
                                 cmd.entity(child).with_children(|parent| {
-                                    parent.spawn_bundle(text(id));
+                                    parent.spawn(text(id));
                                 });
                             });
                         };
@@ -103,7 +103,7 @@ pub fn uncover(
                                 .insert(Animator::new(vis_seq(9 * ROT_TIME, false)))
                                 .with_children(|parent| {
                                     parent
-                                        .spawn_bundle(text(id))
+                                        .spawn(text(id))
                                         .insert(Animator::new(vis_seq(8 * ROT_TIME, false)));
                                 });
                         }
@@ -129,10 +129,9 @@ pub fn deck_complete(
             ..text.node.style
         };
         let entity = cmd
-            .spawn_bundle(text)
+            .spawn(text)
             .insert(Animator::new(Tween::new(
                 EaseFunction::ElasticInOut,
-                TweeningType::PingPong,
                 ROT_TIME * 9,
                 TransformScaleLens {
                     start: Vec3::splat(0.91),
@@ -142,7 +141,6 @@ pub fn deck_complete(
             .insert(Animator::new(
                 Tween::new(
                     EaseFunction::ElasticInOut,
-                    TweeningType::Once,
                     ROT_TIME * 81,
                     TextColorLens {
                         start: Color::WHITE,
