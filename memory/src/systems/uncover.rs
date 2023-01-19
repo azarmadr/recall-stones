@@ -1,6 +1,4 @@
-use menu_plugin::MenuMaterials;
-
-use crate::{components::*, tween::*, Deck, MemoryGAssts};
+use crate::{components::*, tween::*, Deck, MemoryGAssts, MemoryGOpts};
 use {bevy::prelude::*, std::time::Duration};
 
 pub(crate) const ROT_TIME: Duration = Duration::from_millis(81);
@@ -116,42 +114,12 @@ pub fn uncover(
 pub fn deck_complete(
     mut cmd: Commands,
     cards: Query<Entity, With<Idx>>,
-    mut local: Local<Option<Entity>>,
     deck: Res<Deck>,
     children: Query<&Children>,
-    materials: Res<MenuMaterials>,
-    mut animate_evr: EventReader<TweenCompleted>,
+    mut opts: ResMut<MemoryGOpts>,
 ) {
-    if deck.completed() && local.is_none() {
-        let mut text = materials.button_text("Deck Completed!!!");
-        text.node.style = Style {
-            position_type: PositionType::Absolute,
-            ..text.node.style
-        };
-        let entity = cmd
-            .spawn(text)
-            .insert(Animator::new(Tween::new(
-                EaseFunction::ElasticInOut,
-                ROT_TIME * 9,
-                TransformScaleLens {
-                    start: Vec3::splat(0.91),
-                    end: Vec3::ONE,
-                },
-            )))
-            .insert(Animator::new(
-                Tween::new(
-                    EaseFunction::ElasticInOut,
-                    ROT_TIME * 81,
-                    TextColorLens {
-                        start: Color::WHITE,
-                        end: Color::GREEN,
-                        section: 0,
-                    },
-                )
-                .with_completed_event(std::u64::MAX),
-            ))
-            .id();
-        *local = Some(entity);
+    opts.outcome = deck.outcome();
+    if opts.outcome.is_some() {
         let mut cycle = (15..27).cycle();
         let mut tween = |e| {
             cmd.entity(e).insert(Animator::new(vis_seq(
@@ -168,10 +136,6 @@ pub fn deck_complete(
                 };
             }
         }
-    }
-
-    if animate_evr.iter().any(|&x| x.user_data == std::u64::MAX) {
-        cmd.entity(local.unwrap()).despawn_recursive();
-        *local = None
+        cmd.remove_resource::<Deck>();
     }
 }

@@ -1,7 +1,7 @@
 use {bevy::prelude::*, memory::*, menu_plugin::MenuMaterials, std::time::Duration};
 
 #[cfg(feature = "dev")]
-use bevy_inspector_egui::{InspectorPlugin, WorldInspectorPlugin};
+use bevy_inspector_egui::WorldInspectorPlugin;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 enum Game {
@@ -34,13 +34,13 @@ pub fn main() {
 
     // Debug hierarchy inspector
     #[cfg(feature = "dev")]
-    app.add_plugin(WorldInspectorPlugin::new())
-        .add_plugin(InspectorPlugin::<MenuMaterials>::new());
+    app.add_plugin(WorldInspectorPlugin::new());
+
     app.run();
 }
 /// Pre launch setup of assets and options
 fn startup(mut commands: Commands, mut menu: ResMut<MenuMaterials>, mut windows: ResMut<Windows>) {
-    commands.spawn(Camera3dBundle::default());
+    commands.spawn(Camera2dBundle::default());
     let window = windows.primary_mut();
     // window.set_maximized(true);
     menu.size = window
@@ -51,7 +51,7 @@ fn startup(mut commands: Commands, mut menu: ResMut<MenuMaterials>, mut windows:
 
 fn game_timer(mut state: ResMut<State<Game>>, time: Res<Time>, mut timer: Local<Timer>) {
     if timer.duration() == Duration::ZERO {
-        timer.set_duration(Duration::from_millis(729));
+        timer.set_duration(Duration::from_millis(27));
     }
     if timer.tick(time.delta()).just_finished() {
         state.replace(Game::Memory).unwrap();

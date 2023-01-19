@@ -13,7 +13,8 @@ serde = "1.0"
 rand = "0.8"
 duplicate = "0.4"
 bevy_tweening = "0.6.0"
-menu-plugin = { git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git" }
+menu-plugin = {workspace=true}
+bevy_quickmenu = {workspace=true}
 bevy = { workspace = true }
 autodefault = { workspace = true }
 enum_dispatch = { workspace = true }

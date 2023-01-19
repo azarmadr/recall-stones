@@ -1,16 +1,11 @@
-use std::time::Duration;
-
-use bevy_tweening::{Animator, EaseFunction, Tween};
-
-use crate::tween::BeTween;
-
 use super::ROT_TIME;
-
+use crate::tween::BeTween;
+use bevy_tweening::{Animator, EaseFunction, Tween};
+use std::time::Duration;
 use {
     crate::{components::*, Deck},
     bevy::prelude::*,
     rand::seq::IteratorRandom,
-    // bevy::log::prelude::info,
 };
 
 /// Whether the ai or human, get the index of the move and add `Open` Component to that entity
@@ -28,14 +23,13 @@ pub fn turn(
         .iter_mut()
         .find(|pl| deck.player() == pl.deref().0)
         .unwrap();
-    let mut rng = rand::thread_rng();
 
     if let Some(mut id) = if player.is_bot() && timer.tick(time.delta()).just_finished() {
         timer.reset();
         cards
             .iter_mut()
             .filter(|(id, _, _)| deck.is_available_move(id.0))
-            .choose(&mut rng)
+            .choose(&mut rand::thread_rng())
             .map(|x| x.0)
     } else if player.is_bot() {
         None

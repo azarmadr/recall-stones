@@ -1,5 +1,5 @@
 use {
-    super::{MatchRules::*, Mode},
+    super::{Mode, RuleSet::*},
     crate::components::*,
     bevy::prelude::*,
     rand::{distributions::WeightedIndex, prelude::*},
@@ -19,6 +19,9 @@ pub struct MemoryGOpts {
     pub level: u8,
     //#[cfg_attr(feature="dev",inspectable(min = (1,0), max = (2,1)))]
     pub players: (u8, u8),
+    pub human_first: bool,
+    pub outcome: Option<u8>,
+    pub auto_start: bool,
 }
 impl Default for MemoryGOpts {
     fn default() -> Self {
@@ -29,9 +32,12 @@ impl Default for MemoryGOpts {
                 rule: Zebra,
                 combo: true,
                 full_plate: true,
-                duel: true,
+                duel: false,
             },
+            auto_start: true,
             players: (1, 1),
+            human_first: true,
+            outcome: None,
         }
     }
 }
@@ -49,6 +55,19 @@ impl MemoryGOpts {
             self.level, self.mode, self.players.0, self.players.1
         )
     }
+    pub fn outcome(&self) -> String {
+        match self.outcome {
+            Some(p) => format!(
+                "You {}",
+                if self.human_first && p == 0 {
+                    "Won"
+                } else {
+                    "Lost"
+                }
+            ),
+            None => "None".to_string(),
+        }
+    }
     pub fn create_players(&self) -> Vec<Player> {
         let mut weights = [self.players.0, self.players.1];
         let mut players = vec![];
@@ -56,7 +75,11 @@ impl MemoryGOpts {
         let mut idx = 0u8;
         while !weights.iter().all(|&x| x == 0) {
             let dist = WeightedIndex::new(&weights).unwrap();
-            let choice = if idx == 0 { 0 } else { dist.sample(&mut rng) };
+            let choice = if idx == 0 {
+                !self.human_first as usize
+            } else {
+                dist.sample(&mut rng)
+            };
             weights[choice] -= 1;
             players.push(if choice == 1 {
                 Player::Bolts(Bolts(idx, 0))

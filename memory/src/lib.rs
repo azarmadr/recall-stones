@@ -10,25 +10,25 @@ use {
     std::time::Duration,
     {components::*, deck::Deck, tween::*},
 };
-pub use {components::Player, events::*, resources::*};
+pub use {components::Player, resources::*};
 
 #[cfg(feature = "dev")]
 use {bevy::log, bevy_inspector_egui::InspectorPlugin};
 
 pub mod components;
-mod events;
 mod menu;
 mod resources;
 mod systems;
 pub mod tween;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum AppState {
+pub enum GameState {
     Game,
     Splash,
     Menu,
 }
-use AppState::*;
+use bevy::ui::FocusPolicy;
+use GameState::*;
 
 #[derive(Component)]
 #[component(storage = "SparseSet")]
@@ -42,71 +42,62 @@ pub struct ScoreBoard;
 pub struct MemoryGamePlugin<T>(pub T);
 impl<T: StateData + Copy> Plugin for MemoryGamePlugin<T> {
     fn build(&self, app: &mut App) {
-        app.add_state(AppState::Splash)
+        app.add_state(GameState::Splash)
             .add_plugin(TweeningPlugin)
+            .add_plugin(MenuPlugin)
+            .add_system(component_animator_system::<Visibility>)
+            .add_system(component_animator_system::<BackgroundColor>)
             .add_system_set(SystemSet::on_enter(Game).with_system(create_board))
             .add_system_set(
                 SystemSet::on_update(Game)
+                    .with_run_criteria(resource_exists::<Deck>)
                     .with_system(systems::deck_complete.at_end())
                     .with_system(systems::turn)
                     .with_system(systems::score_board),
             )
             .add_system_set(
                 SystemSet::on_in_stack_update(Game)
-                    .with_system(systems::uncover)
-                    .with_system(systems::card_flip),
+                    .with_run_criteria(resource_exists::<Deck>)
+                    .with_system(systems::uncover),
             )
+            .init_resource::<MemoryGAssts>()
             .add_system(board_display)
+            .add_system(systems::card_flip)
             .add_system_set(SystemSet::on_exit(Game).with_system(despawn::<Board>))
             .add_system_set(SystemSet::on_exit(Game).with_system(despawn::<ScoreBoard>))
-            .add_system(component_animator_system::<Visibility>)
-            .init_resource::<MemoryGAssts>()
-            .add_system(component_animator_system::<BackgroundColor>)
-            .add_plugin(MenuPlugin {
-                game: Game,
-                menu: Menu,
-            })
             .add_system_set(SystemSet::on_enter(**self).with_system(splash_off))
             .add_system_set(SystemSet::on_in_stack_update(**self).with_system(on_completion))
             .add_system_set(SystemSet::on_exit(**self).with_system(splash_on))
             .init_resource::<MemoryGOpts>();
+
         #[cfg(feature = "dev")]
-        {
-            app
-                // .add_plugin(InspectorPlugin::<Deck>::new())
-                .add_plugin(InspectorPlugin::<MemoryGOpts>::new())
-                // .add_plugin(InspectorPlugin::<MemoryGAssts>::new())
-                ;
-        }
+        app.add_plugin(InspectorPlugin::<MemoryGOpts>::new());
     }
 }
 
-pub fn splash_on(mut state: ResMut<State<AppState>>) {
-    state.push(AppState::Splash).unwrap();
+pub fn splash_on(mut state: ResMut<State<GameState>>) {
+    state.push(GameState::Splash).unwrap();
 }
-pub fn splash_off(mut state: ResMut<State<AppState>>) {
+pub fn splash_off(mut state: ResMut<State<GameState>>) {
     if state.inactives().is_empty() {
-        state.replace(AppState::Menu).unwrap();
+        state.replace(GameState::Menu).unwrap();
     } else {
         state.pop().unwrap();
     }
 }
 
-pub fn if_deck_not_done(deck: Option<Res<Deck>>) -> ShouldRun {
-    if let Some(d) = deck {
-        if d.outcome().is_none() {
-            return ShouldRun::Yes;
-        }
-    }
-    ShouldRun::No
+pub fn resource_exists<T: Resource>(res: Option<Res<T>>) -> ShouldRun {
+    res.is_some().into()
 }
+
+#[allow(clippy::type_complexity)]
 pub fn board_display(
     mut board: Query<&mut Style, Or<(With<Board>, With<ScoreBoard>)>>,
-    state: Res<State<AppState>>,
+    state: Res<State<GameState>>,
 ) {
     board.for_each_mut(|mut style| {
         style.display = match state.current() {
-            AppState::Game => Display::Flex,
+            GameState::Game => Display::Flex,
             _ => Display::None,
         }
     })
@@ -116,22 +107,21 @@ pub fn board_display(
 pub fn create_board(
     mut cmd: Commands,
     material: Res<MenuMaterials>,
-    opts: Res<MemoryGOpts>,
+    mut opts: ResMut<MemoryGOpts>,
     mut assets: ResMut<MemoryGAssts>,
 ) {
     let mut rng = rand::thread_rng();
     assets.card.shuffle(&mut rng);
     let count = opts.deck_params().0;
+    opts.outcome = None;
     let deck_width = (2. * count as f32).sqrt().round();
     let players = opts.create_players();
     let deck = Deck::init(opts.deck_params(), opts.mode, players.len() as u8);
-    // let size = opts.card_size(deck_width, deck_width);
     let size = material.size / deck_width.max(2. * (count as f32 / deck_width).ceil()) * 0.77;
+
     #[cfg(feature = "dev")]
-    {
-        log::info!("{deck}");
-        log::info!("size {size}\ndeck_width {deck_width}");
-    }
+    log::info!("{deck}\nsize {size}\ndeck_width {deck_width}");
+
     let width = (deck_width + 0.3) * (size + 2.);
     let seq = |i| {
         Delay::new(Duration::from_millis(27 + i as u64 * 81)).then(Tween::new(
@@ -151,6 +141,7 @@ pub fn create_board(
         align_items: AlignItems::Center,
         align_self: AlignSelf::Center,
     }))
+    .insert(FocusPolicy::Pass)
     .insert(Name::new("Board"))
     .insert(Board)
     .with_children(|p| {
@@ -221,6 +212,7 @@ pub fn create_board(
         align_self: AlignSelf::FlexEnd,
         size: Size::new(Val::Percent(100.), Val::Undefined),
     }))
+    .insert(FocusPolicy::Pass)
     .insert(Name::new("Score Panel"))
     .insert(ScoreBoard)
     .with_children(|p| {
@@ -285,25 +277,36 @@ fn despawn<T: Component>(mut cmd: Commands, query: Query<Entity, With<T>>) {
 }
 /// Display Menu for 3 seconds before applying the set opts
 fn on_completion(
-    mut state: ResMut<State<AppState>>,
+    mut state: ResMut<State<GameState>>,
     mut opts: ResMut<MemoryGOpts>,
     mut timer: Local<Timer>,
-    mut board_complete_evr: EventReader<TweenCompleted>,
+    cards: Query<&Visibility, With<Idx>>,
     time: Res<Time>,
 ) {
     if timer.duration() == Duration::ZERO {
         timer.set_duration(Duration::from_secs(5));
+        timer.pause();
     }
-    if board_complete_evr
-        .iter()
-        .any(|&x| x.user_data == std::u64::MAX)
-    {
-        opts.level = 5.min(opts.level + 1);
-        state.push(AppState::Menu).unwrap();
-        timer.reset();
+    if opts.outcome.is_some() {
+        timer.tick(time.delta());
+        if cards.iter().all(|x| x.is_visible) {
+            timer.unpause();
+            if timer.percent() > 0.5 && state.inactives().is_empty() {
+                if opts.auto_start {
+                    opts.level = 5.min(opts.level + 1);
+                }
+                state.push(GameState::Menu).unwrap();
+            }
+        } else if timer.percent() > 0.27 {
+            timer.pause()
+        } else {
+            timer.unpause();
+        }
+        if timer.just_finished() {
+            if state.current() != &GameState::Game && opts.auto_start {
+                state.replace(GameState::Game).unwrap();
+            }
+            timer.reset();
+        }
     }
-    if timer.tick(time.delta()).just_finished() && state.current() != &AppState::Game {
-        state.replace(AppState::Game).unwrap();
-    }
-    // a loading item can be added TODO
 }

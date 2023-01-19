@@ -9,13 +9,16 @@ default = []
 dev = ["menu-plugin/dev", "memory/dev", "bevy-inspector-egui"]
 
 [dependencies]
-menu-plugin = { git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git" }
 memory = { path = "memory" }
 bevy = { workspace = true }
+bevy_quickmenu = {workspace=true}
+menu-plugin = {workspace=true}
 
 [workspace.dependencies]
+menu-plugin = { git = "https://github.com/azarmadr/bevy-ui-menu-plugin.git" }
 autodefault = "2.0.0"
 enum_dispatch = "0.3"
+bevy_quickmenu = "0.1.5"
 
 # Hierarchy inspector debug
 [dependencies.bevy-inspector-egui]

@@ -18,8 +18,8 @@ const OWN_MASK: u16 = 3 << 7;
 /// Game Modes
 /// Variants
 #[cfg_attr(feature = "dev", derive(bevy_inspector_egui::Inspectable))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MatchRules {
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RuleSet {
     /// Pairs need only to be of same rank -- 2 == 2
     AnyColor,
     /// Pairs need to be of same rank and color -- 2red == 2red
@@ -31,11 +31,11 @@ pub enum MatchRules {
     /// Pairs need to be of same rank and suite, cards have different backs for easy differentiation
     CheckeredDeck,
 }
-use MatchRules::*;
+use RuleSet::*;
 #[cfg_attr(feature = "dev", derive(bevy_inspector_egui::Inspectable))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Resource)]
 pub struct Mode {
-    pub rule: MatchRules,
+    pub rule: RuleSet,
     pub combo: bool,
     pub full_plate: bool,
     pub duel: bool,
@@ -46,7 +46,7 @@ impl Default for Mode {
             rule: Zebra,
             combo: true,
             full_plate: true,
-            duel: true,
+            duel: false,
         }
     }
 }
@@ -226,15 +226,6 @@ impl Deck {
     }
     pub fn get_count(&self, idx: usize) -> u8 {
         (self[idx] >> 9) as u8
-    }
-    pub fn available_moves(&self) -> impl Iterator<Item = usize> + '_ {
-        self.iter().enumerate().filter_map(|(i, _)| {
-            if self.is_available_move(i) {
-                Some(i)
-            } else {
-                None
-            }
-        })
     }
 }
 impl Deref for Deck {
