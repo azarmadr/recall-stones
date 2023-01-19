@@ -97,9 +97,9 @@ impl ScreenTrait for Screens {
             ],
             Self::NewGame => vec![
                 MenuItem::headline("Recall Stones"),
-                MenuItem::action("New Game", Actions::NewGame),
+                MenuItem::action("Start!!", Actions::NewGame),
                 MenuItem::label(""),
-                MenuItem::label("Configuration"),
+                MenuItem::label("Settings"),
                 MenuItem::action("Auto Start", Actions::SetAutoStart)
                     .checked(state.auto_start),
                 MenuItem::screen("Levels", Screens::Levels),
