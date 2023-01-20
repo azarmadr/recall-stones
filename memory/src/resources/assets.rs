@@ -56,6 +56,7 @@ pub struct MemoryGAssts {
     pub back_ground: SpriteMaterial,
     pub score_font: Handle<Font>,
     pub card_font: Handle<Font>,
+    pub icon: Handle<Image>
 }
 impl FromWorld for MemoryGAssts {
     #[autodefault::autodefault(except(MemoryGAssts))]
@@ -88,7 +89,8 @@ impl FromWorld for MemoryGAssts {
                 ),
             ],
             score_font: asset_server.load("fonts/FiraMono-Medium.ttf"),
-            card_font: asset_server.load("fonts/Dicier-Cards.ttf"), //card_font: asset_server.load("fonts/pixeled.ttf")
+            card_font: asset_server.load("fonts/Dicier-Cards.ttf"),
+            icon: asset_server.load("img/icon.png"),
         }
     }
 }

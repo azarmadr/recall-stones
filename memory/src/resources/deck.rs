@@ -196,9 +196,7 @@ impl Deck {
                 self.scores[player] += score as u16;
             }
             if outcome {
-                let s0 = self.scores[0];
-                let s1 = self.scores[1];
-                self.outcome = Some(if s0 > s1 { 0 } else { 1 });
+                self.outcome =  self.scores.iter().position(|x| x==self.scores.iter().max().unwrap()).map(|x|x as u8);
             }
         }
         self.set_next_player()

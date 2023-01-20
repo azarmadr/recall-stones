@@ -35,7 +35,7 @@ impl Default for MemoryGOpts {
                 duel: false,
             },
             auto_start: true,
-            players: (1, 1),
+            players: (1, 0),
             human_first: true,
             outcome: None,
         }

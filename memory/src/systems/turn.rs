@@ -51,12 +51,10 @@ pub fn turn(
 pub fn score_board(
     players: Query<(Entity, &Player, &Parent)>,
     deck: Res<Deck>,
-    // children: Query<&Children>,
     mut text: Query<&mut Text>,
     mut cmd: Commands,
-    mut turn_change: Local<Option<u8>>,
 ) {
-    if turn_change.map_or(deck.outcome().is_none(), |x| x != deck.player()) {
+    if deck.is_changed() {
         for (entity, player, parent) in players.iter() {
             let is_player = player.id() == deck.player();
             cmd.entity(**parent).insert(Animator::new(Tween::new(
@@ -84,9 +82,5 @@ pub fn score_board(
                 player.deref().1
             );
         }
-        *turn_change = Some(deck.player());
-    }
-    if deck.outcome().is_some() {
-        *turn_change = None
     }
 }

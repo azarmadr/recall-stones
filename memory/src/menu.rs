@@ -1,4 +1,4 @@
-use crate::{Deck, GameState, MemoryGOpts, RuleSet};
+use crate::{Deck, GameState, MemoryGAssts, MemoryGOpts, RuleSet};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy_quickmenu::{style::Stylesheet, MenuItem, *};
@@ -11,6 +11,7 @@ pub enum Screens {
     GameOver,
     RuleSet,
     Levels,
+    Bots,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Actions {
@@ -25,20 +26,20 @@ pub enum Actions {
     SetAutoStart,
     SetRule(RuleSet),
     SetLevel(u8),
-    _SetBots(u8),
+    SetBots(u8),
 }
 
 impl Actions {
     fn handle_events(
         mut action_event_reader: EventReader<Self>,
-        mut app_exit_event: EventWriter<AppExit>,
+        mut app_event: EventWriter<AppExit>,
         mut commands: Commands,
         mut state: ResMut<State<GameState>>,
         menu_state: Option<Res<MenuState<Screens>>>,
     ) {
         if let Some(menu_state) = menu_state {
             if !action_event_reader.is_empty() {
-                commands.insert_resource(menu_state.state().clone());
+                commands.insert_resource(menu_state.state().0.clone());
             }
         }
         for event in action_event_reader.iter() {
@@ -48,7 +49,7 @@ impl Actions {
                 }
                 Self::Resume => state.pop().unwrap(),
                 Self::Pause => state.push(GameState::Menu).unwrap(),
-                Self::Quit => app_exit_event.send(AppExit),
+                Self::Quit => app_event.send(AppExit),
                 _ => (),
             }
         }
@@ -56,10 +57,11 @@ impl Actions {
 }
 
 impl ActionTrait for Actions {
-    type State = MemoryGOpts;
+    type State = (MemoryGOpts, Handle<Image>);
     type Event = Self;
 
     fn handle(&self, state: &mut Self::State, event_writer: &mut EventWriter<Self::Event>) {
+        let (state, ..) = state;
         match self {
             Self::SetHumanFirst => state.human_first ^= true,
             Self::SetDuel => state.mode.duel ^= true,
@@ -68,7 +70,10 @@ impl ActionTrait for Actions {
             Self::SetAutoStart => state.auto_start ^= true,
             Self::SetRule(rs) => state.mode.rule = *rs,
             Self::SetLevel(l) => state.level = *l,
-            Self::_SetBots(count) => state.players.1 = *count,
+            Self::SetBots(count) => {
+                state.players.1 = *count;
+                state.human_first |= *count == 0
+            }
             _ => event_writer.send(*self),
         }
     }
@@ -76,12 +81,15 @@ impl ActionTrait for Actions {
 
 impl ScreenTrait for Screens {
     type Action = Actions;
-    type State = MemoryGOpts;
+    type State = (MemoryGOpts, Handle<Image>);
 
     fn resolve(
         &self,
         state: &<<Self as ScreenTrait>::Action as bevy_quickmenu::ActionTrait>::State,
     ) -> bevy_quickmenu::Menu<Self> {
+        let (state, img) = state;
+        let bots_action =
+            |l| MenuItem::action(format!("{l}"), Actions::SetBots(l)).checked(state.players.1 == l);
         let level_action =
             |l| MenuItem::action(format!("{l}"), Actions::SetLevel(l)).checked(state.level == l);
         let rule_action = |rs| {
@@ -95,30 +103,39 @@ impl ScreenTrait for Screens {
                 MenuItem::screen("New Game", Screens::NewGame),
                 MenuItem::action("Quit", Actions::Quit),
             ],
-            Self::NewGame => vec![
+            Self::NewGame => [
                 MenuItem::headline("Recall Stones"),
-                MenuItem::action("Start!!", Actions::NewGame),
+                MenuItem::action("Start!!", Actions::NewGame)
+                    .with_icon(MenuIcon::Other(img.clone())),
                 MenuItem::label(""),
                 MenuItem::label("Settings"),
-                MenuItem::action("Auto Start", Actions::SetAutoStart)
-                    .checked(state.auto_start),
+                MenuItem::action("Auto Start", Actions::SetAutoStart).checked(state.auto_start),
                 MenuItem::screen("Levels", Screens::Levels),
-                MenuItem::screen("Rule Set", Screens::RuleSet),
-                MenuItem::action("Player First", Actions::SetHumanFirst).checked(state.human_first),
-                MenuItem::action("Duel", Actions::SetDuel).checked(state.mode.duel),
-                MenuItem::action("Combo", Actions::SetCombo).checked(state.mode.combo),
+                MenuItem::screen("Bots", Screens::Bots),
+                MenuItem::screen("Rule Set", Screens::RuleSet).with_icon(MenuIcon::Controls),
                 MenuItem::action("Full Plate", Actions::SetFullPlate)
                     .checked(state.mode.full_plate),
-            ],
-            Self::Levels => vec![
-                MenuItem::headline("Levels"),
-                level_action(0),
-                level_action(1),
-                level_action(2),
-                level_action(3),
-                level_action(4),
-                level_action(5),
-            ],
+            ]
+            .into_iter()
+            .chain(
+                [
+                    MenuItem::action("Player First", Actions::SetHumanFirst)
+                        .checked(state.human_first),
+                    MenuItem::action("Duel", Actions::SetDuel).checked(state.mode.duel),
+                    MenuItem::action("Combo", Actions::SetCombo).checked(state.mode.combo),
+                ]
+                .into_iter()
+                .take(if state.players.1 > 0 { 3 } else { 0 }),
+            )
+            .collect(),
+            Self::Bots => [MenuItem::headline("Bots")]
+                .into_iter()
+                .chain((0..2).map(|x| bots_action(x)))
+                .collect(),
+            Self::Levels => [MenuItem::headline("Levels")]
+                .into_iter()
+                .chain((0..6).map(|x| level_action(x)))
+                .collect(),
             Self::RuleSet => vec![
                 MenuItem::headline("Rule Sets"),
                 rule_action(RuleSet::AnyColor),
@@ -143,11 +160,13 @@ fn menu(
     state: Res<State<GameState>>,
     opts: Option<Res<MemoryGOpts>>,
     deck: Option<Res<Deck>>,
-    mut prev: Local<String>,
+    assets: Res<MemoryGAssts>,
+    mut prev_state: Local<Option<GameState>>,
 ) {
-    let current_state = format!("{:?}{:?}",state.current(),state.inactives());
-    if *prev == current_state {return;}
-    *prev = current_state;
+    if prev_state.map_or(false, |x| x == *state.current()) {
+        return;
+    }
+    *prev_state = Some(*state.current());
 
     let cfg = opts.map_or(MemoryGOpts::default(), |x| x.clone());
     let screen = if state.current() == &GameState::Game {
@@ -159,6 +178,7 @@ fn menu(
     } else {
         Screens::Pause
     };
+
     let sheet = Stylesheet::default()
         .with_background(BackgroundColor(Color::BLACK))
         .with_style(Style {
@@ -166,7 +186,12 @@ fn menu(
             align_items: AlignItems::FlexEnd,
             ..default()
         });
-    commands.insert_resource(MenuState::new(cfg, screen, Some(sheet)));
+
+    commands.insert_resource(MenuState::new(
+        (cfg, assets.icon.clone()),
+        screen,
+        Some(sheet),
+    ));
 }
 
 pub struct MenuPlugin;
